@@ -139,7 +139,7 @@ export default function QueryForm() {
                         value={searchData.name} 
                         onChange={handleSearchChange} 
                         className="w-full rounded border-gray-300 border p-3 focus:ring-[#5c6b73] focus:border-[#5c6b73]" 
-                        placeholder="例：江沛倉" 
+                        placeholder="例：王小明" 
                         required 
                       />
                     </div>
@@ -151,7 +151,7 @@ export default function QueryForm() {
                         value={searchData.idNumber} 
                         onChange={handleSearchChange} 
                         className="w-full rounded border-gray-300 border p-3 focus:ring-[#5c6b73] focus:border-[#5c6b73]" 
-                        placeholder="例：I100087000 (不分大小寫)" 
+                        placeholder="例：A123456789 (不分大小寫)" 
                         required 
                       />
                     </div>
