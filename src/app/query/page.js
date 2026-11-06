@@ -3,6 +3,32 @@
 import { useState } from "react";
 import Link from "next/link";
 
+// 檔期代碼與出發日期對照表
+const scheduleDateMap = {
+  // 西藏系列
+  "TE1": "03/19-03/30", "TE2": "04/02-04/13", "TE3": "10/22-11/02", "TE4": "11/05-11/16",
+  "TB1": "04/02-04/13", "TB2": "04/23-05/04", "TB3": "06/04-06/15", "TB4": "07/09-07/20",
+  "TB5": "08/13-08/24", "TB6": "09/10-09/21", "TB7": "09/24-10/05", "TB8": "10/08-10/19", "TB9": "10/22-11/02",
+  "TK1": "06/04-06/15", "TK2": "09/10-09/21",
+  // 新疆系列
+  "XS1": "04/02-04/11", "XS2": "10/22-10/31",
+  // 中國自駕系列
+  "TC318-1": "04/14-04/26", "TC318-2": "10/13-10/25",
+  "TC1": "04/23-05/02", "TC2": "10/22-10/31",
+  "XSD1": "04/02-04/11", "XSD2": "10/22-10/31",
+  // 埃及系列
+  "EG1": "2026/12/04-12/15", "EG2": "2027/01/22-02/02", "EG3": "2027/02/26-03/09", 
+  "EG4": "2027/04/02-04/13", "EG5": "2027/04/30-05/11"
+};
+
+// 格式化顯示「團號 + 出發日期」
+const formatSchedule = (code) => {
+  if (!code) return "未指定";
+  const cleanCode = code.toString().trim();
+  const dateStr = scheduleDateMap[cleanCode];
+  return dateStr ? `${cleanCode}（${dateStr}）` : cleanCode;
+};
+
 export default function QueryForm() {
   const [searchData, setSearchData] = useState({ name: "", idNumber: "" });
   const [isSearching, setIsSearching] = useState(false);
@@ -37,7 +63,7 @@ export default function QueryForm() {
       let response = await fetch(queryUrl);
       let data = await response.json();
 
-      // 方案 B 備用容錯：若精準搜尋未命中，抓取全表在前端進行不分大小寫比對
+      // 方案 B 備用容錯：若精準搜尋未命中，抓取全表在前端比對
       if (!data || data.length === 0 || data.error) {
         const fallbackRes = await fetch(`https://sheetdb.io/api/v1/6xxfvdvjl1t6l?sheet=Registration`);
         const allRows = await fallbackRes.json();
@@ -173,6 +199,7 @@ export default function QueryForm() {
                   </div>
                 )}
 
+                {/* 訂單列表卡片區 */}
                 {orderList.length > 0 && (
                   <div className="space-y-4">
                     <h3 className="text-base font-bold text-gray-800 mb-3 border-b pb-2">
@@ -187,7 +214,7 @@ export default function QueryForm() {
                           <span className="text-xs text-gray-500 font-mono block mb-1">訂單編號：{order["訂單編號"]}</span>
                           <h4 className="font-bold text-[#8A1C14] text-lg">{order["行程名稱"]}</h4>
                           <p className="text-sm text-gray-600 mt-1">
-                            出團檔期：<span className="font-medium text-gray-800">{order["出團檔期"]}</span> ｜ 狀態：<span className="font-bold text-orange-700">{order["訂單狀態"]}</span>
+                            出團檔期：<span className="font-semibold text-gray-900">{formatSchedule(order["出團檔期"])}</span> ｜ 狀態：<span className="font-bold text-orange-700">{order["訂單狀態"]}</span>
                           </p>
                         </div>
                         <button 
@@ -223,7 +250,7 @@ export default function QueryForm() {
                     <span className="text-xs font-mono text-gray-500 block mb-1">訂單編號：{selectedOrder["訂單編號"]}</span>
                     <h2 className="text-2xl font-bold text-[#8A1C14]">{selectedOrder["行程名稱"]}</h2>
                     <p className="text-sm text-gray-600 mt-1">
-                      出團檔期：<strong className="text-gray-900 font-mono">{selectedOrder["出團檔期"]}</strong>
+                      出團檔期：<strong className="text-gray-900 font-semibold">{formatSchedule(selectedOrder["出團檔期"])}</strong>
                       {selectedOrder["天數"] && <span> ｜ 行程天數：<strong className="text-gray-900">{selectedOrder["天數"]}</strong></span>}
                     </p>
                   </div>
@@ -237,8 +264,6 @@ export default function QueryForm() {
 
                 {/* 2. 旅客完整報名資料核對卡 */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-6">
-                  
-                  {/* 子區塊：基本資料 */}
                   <div>
                     <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
                       <span className="text-[#8A1C14]">●</span> 旅客基本證件資料
@@ -275,7 +300,6 @@ export default function QueryForm() {
                     </div>
                   </div>
 
-                  {/* 子區塊：餐飲、住宿與客製需求 */}
                   <div>
                     <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
                       <span className="text-[#8A1C14]">●</span> 餐飲與住宿安排需求
@@ -301,7 +325,6 @@ export default function QueryForm() {
                     </div>
                   </div>
 
-                  {/* 子區塊：自駕配置 (若有填寫才顯示) */}
                   {(selectedOrder["自駕分組"] || selectedOrder["自駕角色_配置"]) && (
                     <div>
                       <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
@@ -326,7 +349,6 @@ export default function QueryForm() {
                     </div>
                   )}
 
-                  {/* 子區塊：發票統編 (若有填寫才顯示) */}
                   {selectedOrder["是否開立統編"] === "是" && (
                     <div>
                       <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
@@ -346,7 +368,7 @@ export default function QueryForm() {
                   )}
                 </div>
 
-                {/* 3. ⚠️ 重要備註：資料錯誤聯絡業務修改提示框 */}
+                {/* 3. 重要備註提示框 */}
                 <div className="bg-amber-50 border-l-4 border-amber-500 p-4 sm:p-5 rounded-r-xl shadow-sm">
                   <div className="flex items-start gap-3">
                     <span className="text-amber-600 text-xl leading-none">⚠️</span>
