@@ -6,10 +6,12 @@ import Link from "next/link";
 export default function QueryForm() {
   const [searchData, setSearchData] = useState({ name: "", idNumber: "" });
   const [isSearching, setIsSearching] = useState(false);
-  const [orderResult, setOrderResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // 回填後五碼的狀態管理
+  // 新增：儲存多筆訂單列表，以及當前選擇查看的訂單
+  const [orderList, setOrderList] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
   const [last5Digits, setLast5Digits] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
@@ -18,24 +20,24 @@ export default function QueryForm() {
     setSearchData({ ...searchData, [e.target.name]: e.target.value });
   };
 
-  // 1. 查詢訂單 (GET 請求)
+  // 1. 查詢訂單 (取得該客戶的所有報名紀錄)
   const handleSearch = async (e) => {
     e.preventDefault();
     setIsSearching(true);
     setErrorMsg("");
-    setOrderResult(null);
+    setOrderList([]);
+    setSelectedOrder(null);
     setUpdateSuccess(false);
 
     try {
-      // 呼叫 SheetDB 的 Search API
       const response = await fetch(
         `https://sheetdb.io/api/v1/6xxfvdvjl1t6l/search?sheet=Registration&中文姓名=${searchData.name}&身分證_護照號碼=${searchData.idNumber}`
       );
       const data = await response.json();
 
       if (data && data.length > 0) {
-        // 取最新的一筆訂單顯示
-        setOrderResult(data[data.length - 1]);
+        // 反轉陣列，讓最新的訂單排在最上面
+        setOrderList(data.reverse());
       } else {
         setErrorMsg("查無報名資料，請確認姓名與身分證字號是否輸入正確。");
       }
@@ -47,7 +49,7 @@ export default function QueryForm() {
     }
   };
 
-  // 2. 回填匯款後五碼 (PATCH 更新請求)
+  // 2. 回填匯款後五碼
   const handleUpdateTransfer = async () => {
     if (!last5Digits || last5Digits.length < 5) {
       alert("請輸入完整的帳號後五碼！");
@@ -55,7 +57,6 @@ export default function QueryForm() {
     }
     setIsUpdating(true);
 
-    // 準備更新的資料 (更新狀態與後五碼)
     const payload = {
       data: {
         "客戶匯款後五碼": last5Digits,
@@ -64,28 +65,29 @@ export default function QueryForm() {
     };
 
     try {
-      // SheetDB 支援指定欄位更新： /欄位名稱/欄位值
-      const updateUrl = `https://sheetdb.io/api/v1/6xxfvdvjl1t6l/訂單編號/${orderResult["訂單編號"]}?sheet=Registration`;
+      const updateUrl = `https://sheetdb.io/api/v1/6xxfvdvjl1t6l/訂單編號/${selectedOrder["訂單編號"]}?sheet=Registration`;
       
       const response = await fetch(updateUrl, {
         method: 'PATCH',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
       const result = await response.json();
       
       if (result.updated) {
         setUpdateSuccess(true);
-        // 更新畫面上的狀態顯示
-        setOrderResult({
-          ...orderResult,
+        // 更新當前顯示的明細狀態
+        setSelectedOrder(prev => ({
+          ...prev,
           "客戶匯款後五碼": last5Digits,
           "訂單狀態": "已匯款等候確認"
-        });
+        }));
+        // 同步更新列表中的狀態
+        setOrderList(prevList => prevList.map(order => 
+          order["訂單編號"] === selectedOrder["訂單編號"] 
+            ? { ...order, "客戶匯款後五碼": last5Digits, "訂單狀態": "已匯款等候確認" } 
+            : order
+        ));
       }
     } catch (error) {
       console.error("更新失敗:", error);
@@ -109,115 +111,115 @@ export default function QueryForm() {
               <p className="mt-2 text-gray-600">請輸入報名時填寫的資料以查詢訂單狀態</p>
             </div>
 
-            {/* 查詢表單區塊 */}
-            <form onSubmit={handleSearch} className="mb-10">
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">中文姓名</label>
-                  <input type="text" name="name" value={searchData.name} onChange={handleSearchChange} className="w-full rounded border-gray-300 border p-3 focus:ring-[#5c6b73]" placeholder="請輸入姓名" required />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">身分證/護照號碼</label>
-                  <input type="text" name="idNumber" value={searchData.idNumber} onChange={handleSearchChange} className="w-full rounded border-gray-300 border p-3 focus:ring-[#5c6b73]" placeholder="請輸入證號" required />
-                </div>
-              </div>
-              <div className="mt-6 text-center">
-                <button 
-                  type="submit" 
-                  disabled={isSearching}
-                  className="bg-[#5c6b73] text-white px-10 py-3 rounded-lg font-bold hover:bg-[#4a565d] transition-colors disabled:bg-gray-400"
-                >
-                  {isSearching ? '搜尋中...' : '查詢訂單'}
-                </button>
-              </div>
-            </form>
-
-            {/* 錯誤訊息 */}
-            {errorMsg && (
-              <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center mb-6 border border-red-200">
-                {errorMsg}
-              </div>
-            )}
-
-            {/* 查詢結果區塊 */}
-            {orderResult && (
-              <div className="bg-gray-50 rounded-lg border border-gray-200 p-6 animate-fade-in-up">
-                <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-4">
-                  <h3 className="text-xl font-bold text-[#8A1C14]">訂單資訊</h3>
-                  <span className="bg-orange-100 text-orange-800 text-sm font-bold px-3 py-1 rounded-full">
-                    狀態：{orderResult["訂單狀態"]}
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700 mb-6">
-                  <p><span className="text-gray-500 block text-xs">訂單編號</span><span className="font-mono font-medium">{orderResult["訂單編號"]}</span></p>
-                  <p><span className="text-gray-500 block text-xs">報名時間</span>{orderResult["報名時間"]}</p>
-                  <p className="sm:col-span-2"><span className="text-gray-500 block text-xs">報名行程</span>{orderResult["行程名稱"]}</p>
-                  <p><span className="text-gray-500 block text-xs">出團檔期</span>{orderResult["出團檔期"]}</p>
-                  <p><span className="text-gray-500 block text-xs">應付訂金</span><span className="text-[#8A1C14] font-bold">NT$ {orderResult["應付訂金"]}</span></p>
-                </div>
-
-                {/* 動態操作區塊：依據支付方式與狀態呈現不同介面 */}
-                <div className="bg-white p-5 rounded border border-gray-200">
-                  <h4 className="font-bold text-gray-900 mb-3">繳費操作區 ({orderResult["支付方式"]})</h4>
-                  
-                  {/* 情境 1：選擇匯款，且尚未填寫後五碼 */}
-                  {orderResult["支付方式"] === "匯款" && (!orderResult["客戶匯款後五碼"] || orderResult["客戶匯款後五碼"] === "") ? (
+            {/* 如果還沒選擇具體訂單，顯示搜尋框與列表 */}
+            {!selectedOrder && (
+              <>
+                <form onSubmit={handleSearch} className="mb-10">
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div>
-                      <p className="text-sm text-gray-600 mb-3">請於完成匯款後，於下方回填您的帳號後五碼，以便財務人員對帳。</p>
-                      <div className="flex gap-3">
-                        <input 
-                          type="text" 
-                          maxLength="5" 
-                          placeholder="請輸入後五碼" 
-                          value={last5Digits}
-                          onChange={(e) => setLast5Digits(e.target.value)}
-                          className="border border-gray-300 rounded p-2 flex-grow focus:ring-[#8A1C14]"
-                        />
+                      <label className="block text-sm font-medium text-gray-700 mb-1">中文姓名</label>
+                      <input type="text" name="name" value={searchData.name} onChange={handleSearchChange} className="w-full rounded border-gray-300 border p-3 focus:ring-[#5c6b73]" required />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">身分證/護照號碼</label>
+                      <input type="text" name="idNumber" value={searchData.idNumber} onChange={handleSearchChange} className="w-full rounded border-gray-300 border p-3 focus:ring-[#5c6b73]" required />
+                    </div>
+                  </div>
+                  <div className="mt-6 text-center">
+                    <button type="submit" disabled={isSearching} className="bg-[#5c6b73] text-white px-10 py-3 rounded-lg font-bold hover:bg-[#4a565d] transition-colors disabled:bg-gray-400">
+                      {isSearching ? '搜尋中...' : '查詢訂單'}
+                    </button>
+                  </div>
+                </form>
+
+                {errorMsg && <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center mb-6">{errorMsg}</div>}
+
+                {/* 訂單列表 (多筆) */}
+                {orderList.length > 0 && (
+                  <div className="space-y-4 animate-fade-in-up">
+                    <h3 className="text-lg font-bold text-gray-800 mb-3 border-b pb-2">您共有 {orderList.length} 筆報名紀錄：</h3>
+                    {orderList.map((order) => (
+                      <div key={order["訂單編號"]} className="bg-gray-50 border border-gray-200 rounded-lg p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:shadow-md transition-shadow">
+                        <div className="mb-3 sm:mb-0">
+                          <span className="text-xs text-gray-500 font-mono block mb-1">{order["訂單編號"]}</span>
+                          <h4 className="font-bold text-[#8A1C14] text-lg">{order["行程名稱"]}</h4>
+                          <p className="text-sm text-gray-600 mt-1">檔期：{order["出團檔期"]} ｜ 狀態：<span className="font-semibold text-orange-700">{order["訂單狀態"]}</span></p>
+                        </div>
                         <button 
-                          onClick={handleUpdateTransfer}
-                          disabled={isUpdating}
-                          className="bg-[#8A1C14] text-white px-4 py-2 rounded hover:bg-[#9c221a] disabled:bg-gray-400"
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setUpdateSuccess(false);
+                            setLast5Digits("");
+                          }}
+                          className="bg-white border border-[#5c6b73] text-[#5c6b73] px-4 py-2 rounded hover:bg-[#5c6b73] hover:text-white transition-colors text-sm font-bold whitespace-nowrap"
                         >
-                          {isUpdating ? '送出中...' : '送出對帳'}
+                          查看明細與繳費
                         </button>
                       </div>
-                      {updateSuccess && <p className="text-green-600 text-sm mt-2">✅ 已成功送出後五碼！</p>}
-                    </div>
-                  ) : 
-                  
-                  /* 情境 2：選擇匯款，已經填寫後五碼 */
-                  orderResult["支付方式"] === "匯款" && orderResult["客戶匯款後五碼"] ? (
-                    <div className="text-green-700 bg-green-50 p-3 rounded">
-                      您已回填匯款後五碼：<strong className="font-mono">{orderResult["客戶匯款後五碼"]}</strong>。請靜候財務人員確認。
-                    </div>
-                  ) : 
-                  
-                  /* 情境 3：選擇刷卡，且後台已貼上刷卡連結 */
-                  orderResult["支付方式"] === "刷卡" && orderResult["刷卡連結"] ? (
-                    <div>
-                      <p className="text-sm text-gray-600 mb-3">業務專員已為您建立專屬刷卡連結，請點擊下方按鈕前往支付訂金。</p>
-                      <a 
-                        href={orderResult["刷卡連結"]} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-block bg-[#F59E0B] text-white px-6 py-2 rounded font-bold hover:bg-[#d97706] transition-colors"
-                      >
-                        前往信用卡支付頁面 →
-                      </a>
-                    </div>
-                  ) : 
-                  
-                  /* 情境 4：選擇刷卡，但後台還沒貼連結 */
-                  orderResult["支付方式"] === "刷卡" && !orderResult["刷卡連結"] ? (
-                    <div className="text-orange-700 bg-orange-50 p-3 rounded">
-                      專員正在為您建立刷卡連結，請稍後再回來查詢，或留意您的 Email/LINE 通知。
-                    </div>
-                  ) : null}
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
 
+            {/* 若已選擇具體訂單，顯示詳細資料與操作區 */}
+            {selectedOrder && (
+              <div className="animate-fade-in-up">
+                <button onClick={() => setSelectedOrder(null)} className="text-sm text-gray-500 hover:text-gray-900 mb-4 flex items-center gap-1">
+                  ← 返回訂單列表
+                </button>
+                
+                <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 border-b border-gray-200 pb-4">
+                    <h3 className="text-xl font-bold text-[#8A1C14] mb-2 sm:mb-0">{selectedOrder["行程名稱"]}</h3>
+                    <span className="bg-orange-100 text-orange-800 text-sm font-bold px-3 py-1 rounded-full">
+                      狀態：{selectedOrder["訂單狀態"]}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700 mb-6">
+                    <p><span className="text-gray-500 block text-xs">訂單編號</span><span className="font-mono font-medium">{selectedOrder["訂單編號"]}</span></p>
+                    <p><span className="text-gray-500 block text-xs">報名時間</span>{selectedOrder["報名時間"]}</p>
+                    <p><span className="text-gray-500 block text-xs">出團檔期</span>{selectedOrder["出團檔期"]}</p>
+                    <p><span className="text-gray-500 block text-xs">應付訂金</span><span className="text-[#8A1C14] font-bold">NT$ {selectedOrder["應付訂金"]}</span></p>
+                  </div>
+
+                  {/* 繳費操作區 */}
+                  <div className="bg-white p-5 rounded border border-gray-200 shadow-sm">
+                    <h4 className="font-bold text-gray-900 mb-3">繳費操作區 ({selectedOrder["支付方式"]})</h4>
+                    
+                    {selectedOrder["支付方式"] === "匯款" && (!selectedOrder["客戶匯款後五碼"]) ? (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-3">請於完成匯款後，回填您的帳號後五碼：</p>
+                        <div className="flex gap-3">
+                          <input 
+                            type="text" maxLength="5" placeholder="輸入後五碼" value={last5Digits}
+                            onChange={(e) => setLast5Digits(e.target.value)}
+                            className="border border-gray-300 rounded p-2 flex-grow focus:ring-[#8A1C14]"
+                          />
+                          <button onClick={handleUpdateTransfer} disabled={isUpdating} className="bg-[#8A1C14] text-white px-4 py-2 rounded hover:bg-[#9c221a] disabled:bg-gray-400">
+                            {isUpdating ? '送出中...' : '送出對帳'}
+                          </button>
+                        </div>
+                        {updateSuccess && <p className="text-green-600 text-sm mt-2">✅ 已成功送出後五碼！</p>}
+                      </div>
+                    ) : selectedOrder["支付方式"] === "匯款" && selectedOrder["客戶匯款後五碼"] ? (
+                      <div className="text-green-700 bg-green-50 p-3 rounded">您已回填匯款後五碼：<strong className="font-mono">{selectedOrder["客戶匯款後五碼"]}</strong>。請靜候財務人員確認。</div>
+                    ) : selectedOrder["支付方式"] === "刷卡" && selectedOrder["刷卡連結"] ? (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-3">業務專員已為您建立專屬刷卡連結：</p>
+                        <a href={selectedOrder["刷卡連結"]} target="_blank" rel="noopener noreferrer" className="inline-block bg-[#F59E0B] text-white px-6 py-2 rounded font-bold hover:bg-[#d97706] transition-colors">
+                          前往信用卡支付頁面 →
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="text-orange-700 bg-orange-50 p-3 rounded">專員正在為您建立刷卡連結，請稍後再回來查詢。</div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
+
           </div>
         </div>
       </div>
