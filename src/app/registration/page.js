@@ -3,34 +3,55 @@
 import { useState } from "react";
 import Link from "next/link";
 
-// 旅遊行程資料庫
+// 完整旅遊行程與檔期資料庫 (依據您的最新需求建立)
 const tourData = [
   {
     series: "西藏系列",
     tours: [
-      { tourId: "TE", name: "林芝桃花・頂級西藏青藏鐵路12日", hasDayOptions: false, schedules: [{code: "TE1", date: "03/19-03/30"}, {code: "TE2", date: "04/02-04/13"}, {code: "TE3", date: "10/22-11/02"}, {code: "TE4", date: "11/05-11/16"}] },
-      { tourId: "TB", name: "西藏聖母峰大環線・神山聖湖", hasDayOptions: true, dayOptions: ["10天", "12天"], schedules: [{code: "TB1", date: "04/02-04/13"}, {code: "TB2", date: "04/23-05/04"}, {code: "TB3", date: "06/04-06/15"}, {code: "TB4", date: "07/09-07/20"}, {code: "TB5", date: "08/13-08/24"}, {code: "TB6", date: "09/10-09/21"}, {code: "TB7", date: "09/24-10/05"}, {code: "TB8", date: "10/08-10/19"}, {code: "TB9", date: "10/22-11/02"}] },
-      { tourId: "TK", name: "阿里岡仁波齊轉山之旅", hasDayOptions: false, schedules: [{code: "TK1", date: "06/04-06/15"}, {code: "TK2", date: "09/10-09/21"}] }
+      { tourId: "TE", name: "TE｜林芝桃花・頂級西藏青藏鐵路12日", hasDayOptions: false, schedules: [
+        {code: "TE1", date: "03/19-03/30"}, {code: "TE2", date: "04/02-04/13"}, 
+        {code: "TE3", date: "10/22-11/02"}, {code: "TE4", date: "11/05-11/16"}
+      ]},
+      { tourId: "TB", name: "TB｜西藏聖母峰大環線・神山聖湖", hasDayOptions: true, dayOptions: ["10天", "12天"], schedules: [
+        {code: "TB1", date: "04/02-04/13"}, {code: "TB2", date: "04/23-05/04"}, {code: "TB3", date: "06/04-06/15"}, 
+        {code: "TB4", date: "07/09-07/20"}, {code: "TB5", date: "08/13-08/24"}, {code: "TB6", date: "09/10-09/21"}, 
+        {code: "TB7", date: "09/24-10/05"}, {code: "TB8", date: "10/08-10/19"}, {code: "TB9", date: "10/22-11/02"}
+      ]},
+      { tourId: "TK", name: "TK｜阿里岡仁波齊轉山之旅", hasDayOptions: false, schedules: [
+        {code: "TK1", date: "06/04-06/15"}, {code: "TK2", date: "09/10-09/21"}
+      ]}
     ]
   },
   {
     series: "新疆系列",
     tours: [
-      { tourId: "XS", name: "南疆・帕米爾高原・盤龍古道", hasDayOptions: false, schedules: [{code: "XS1", date: "04/02-04/11"}, {code: "XS2", date: "10/22-10/31"}] }
+      { tourId: "XS", name: "XS｜南疆・帕米爾高原・盤龍古道", hasDayOptions: false, schedules: [
+        {code: "XS1", date: "04/02-04/11"}, {code: "XS2", date: "10/22-10/31"}
+      ]}
     ]
   },
   {
     series: "中國自駕系列",
     tours: [
-      { tourId: "TC318", name: "此生必駕318・重機/四驅車自駕", hasDayOptions: false, schedules: [{code: "TC318-1", date: "04/14-04/26"}, {code: "TC318-2", date: "10/13-10/25"}] },
-      { tourId: "TC", name: "聖母峰・重機/四驅車自駕", hasDayOptions: false, schedules: [{code: "TC1", date: "04/23-05/02"}, {code: "TC2", date: "10/22-10/31"}] },
-      { tourId: "XSD", name: "帕米爾高原・盤龍古道 重機/四驅車自駕", hasDayOptions: false, schedules: [{code: "XSD1", date: "04/02-04/11"}, {code: "XSD2", date: "10/22-10/31"}] }
+      { tourId: "TC318", name: "TC318｜此生必駕318・重機/四驅車自駕", hasDayOptions: false, schedules: [
+        {code: "TC318-1", date: "04/14-04/26"}, {code: "TC318-2", date: "10/13-10/25"}
+      ]},
+      { tourId: "TC", name: "TC｜聖母峰・重機/四驅車自駕", hasDayOptions: false, schedules: [
+        {code: "TC1", date: "04/23-05/02"}, {code: "TC2", date: "10/22-10/31"}
+      ]},
+      { tourId: "XSD", name: "XSD｜帕米爾高原・盤龍古道 重機/四驅車自駕", hasDayOptions: false, schedules: [
+        {code: "XSD1", date: "04/02-04/11"}, {code: "XSD2", date: "10/22-10/31"}
+      ]}
     ]
   },
   {
     series: "埃及系列",
     tours: [
-      { tourId: "EG", name: "埃及撒哈拉之旅", hasDayOptions: false, schedules: [{code: "EG1", date: "2026/12/04-12/15"}, {code: "EG2", date: "2027/01/22-02/02"}, {code: "EG3", date: "2027/02/26-03/09"}, {code: "EG4", date: "2027/04/02-04/13"}, {code: "EG5", date: "2027/04/30-05/11"}] }
+      { tourId: "EG", name: "EG｜埃及撒哈拉之旅", hasDayOptions: false, schedules: [
+        {code: "EG1", date: "2026/12/04-12/15"}, {code: "EG2", date: "2027/01/22-02/02"}, 
+        {code: "EG3", date: "2027/02/26-03/09"}, {code: "EG4", date: "2027/04/02-04/13"}, 
+        {code: "EG5", date: "2027/04/30-05/11"}
+      ]}
     ]
   }
 ];
@@ -51,14 +72,17 @@ export default function RegistrationForm() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
 
-  // 動態推導目前可選行程與條款顯示
+  // 動態推導目前可選行程與條件顯示
   const availableTours = tourData.find(s => s.series === formData.series)?.tours || [];
   const currentTourDetail = availableTours.find(t => t.name === formData.tourName);
   const availableSchedules = currentTourDetail?.schedules || [];
   const showDayOptions = currentTourDetail?.hasDayOptions || false;
   
-  const isTibetTour = formData.series === "西藏系列";
+  // 法律條款動態判定邏輯：
+  // 1. 若選中國自駕系列，需勾自駕條款
   const isDrivingTour = formData.series === "中國自駕系列";
+  // 2. 若選西藏系列，或自駕行程開頭為 "TC" (去西藏)，需勾入藏條款
+  const isTibetTour = formData.series === "西藏系列" || (formData.tourName && formData.tourName.startsWith("TC"));
 
   // 處理輸入變更
   const handleChange = (e) => {
@@ -69,7 +93,7 @@ export default function RegistrationForm() {
     }));
   };
 
-  // 處理系列變更 (重置下層與特定條款)
+  // 處理系列變更 (切換系列時，重置下層選項與條款打勾狀態)
   const handleSeriesChange = (e) => {
     setFormData(prev => ({
       ...prev,
@@ -80,7 +104,7 @@ export default function RegistrationForm() {
     }));
   };
 
-  // 檢查所有必填條款是否勾選
+  // 檢查所有必填條款是否勾選 (防呆機制)
   const canSubmit = formData.agreedGeneral && 
                     (!isTibetTour || formData.agreedTibet) && 
                     (!isDrivingTour || formData.agreedDriving);
@@ -98,7 +122,7 @@ export default function RegistrationForm() {
     const newOrderNumber = `SY${dateStr}-${randomStr}`;
     setOrderNumber(newOrderNumber);
 
-    // 準備上傳到 SheetDB 的資料格式 (必須與 Excel 欄位一模一樣)
+    // 準備寫入 SheetDB 的資料格式 (對應 Excel 欄位名稱)
     const payload = {
       data: [{
         "訂單編號": newOrderNumber,
@@ -153,6 +177,7 @@ export default function RegistrationForm() {
     }
   };
 
+  // 成功送出畫面
   if (submitSuccess) {
     return (
       <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center p-4">
@@ -173,6 +198,7 @@ export default function RegistrationForm() {
     );
   }
 
+  // 報名表單主體畫面
   return (
     <div className="min-h-screen bg-[#FDFBF7] py-8 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-4xl mx-auto">
@@ -264,7 +290,7 @@ export default function RegistrationForm() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">身分證字號 (外籍填護照號碼) *</label>
-                    <input type="text" name="idNumber" value={formData.idNumber} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required uppercase="true" />
+                    <input type="text" name="idNumber" value={formData.idNumber} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">聯絡電話 (手機) *</label>
@@ -316,7 +342,7 @@ export default function RegistrationForm() {
                 </div>
               </section>
 
-              {/* === 區塊四：自駕配置 (動態顯示) === */}
+              {/* === 區塊四：自駕配置 (條件渲染) === */}
               {isDrivingTour && (
                 <section className="bg-gray-100 p-6 rounded-lg border border-gray-200">
                   <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -325,7 +351,7 @@ export default function RegistrationForm() {
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">自駕分組 *</label>
-                      <select name="driveGroup" value={formData.driveGroup} onChange={handleChange} className="w-full rounded border-gray-300 border p-2" required>
+                      <select name="driveGroup" value={formData.driveGroup} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required>
                         <option value="">請選擇</option>
                         <option value="開車組">🚙 開車組</option>
                         <option value="重機組">🏍️ 重機組</option>
@@ -335,7 +361,7 @@ export default function RegistrationForm() {
                     {formData.driveGroup === "開車組" && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">車輛配置 *</label>
-                        <select name="driveRole" value={formData.driveRole} onChange={handleChange} className="w-full rounded border-gray-300 border p-2" required>
+                        <select name="driveRole" value={formData.driveRole} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required>
                           <option value="">請選擇</option>
                           <option value="四人一車">四人一車</option>
                           <option value="三人一車">三人一車</option>
@@ -347,7 +373,7 @@ export default function RegistrationForm() {
                     {formData.driveGroup === "重機組" && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">乘車角色 *</label>
-                        <select name="driveRole" value={formData.driveRole} onChange={handleChange} className="w-full rounded border-gray-300 border p-2" required>
+                        <select name="driveRole" value={formData.driveRole} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required>
                           <option value="">請選擇</option>
                           <option value="駕駛">駕駛</option>
                           <option value="乘客">乘客</option>
@@ -358,7 +384,7 @@ export default function RegistrationForm() {
                     {formData.driveGroup === "重機組" && formData.driveRole === "駕駛" && (
                       <div className="sm:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">重機車種選擇 *</label>
-                        <select name="motoModel" value={formData.motoModel} onChange={handleChange} className="w-full rounded border-gray-300 border p-2" required>
+                        <select name="motoModel" value={formData.motoModel} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required>
                           <option value="">請選擇車種</option>
                           <option value="450~700cc ADV或低座高車款">450~700cc ADV 或低座高車款</option>
                           <option value="800~1000cc ADV或低座高車款">800~1000cc ADV 或低座高車款</option>
@@ -404,35 +430,35 @@ export default function RegistrationForm() {
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 bg-gray-50 p-4 rounded border">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">公司抬頭 *</label>
-                        <input type="text" name="companyTitle" value={formData.companyTitle} onChange={handleChange} className="w-full rounded border-gray-300 border p-2" required />
+                        <input type="text" name="companyTitle" value={formData.companyTitle} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">統一編號 *</label>
-                        <input type="text" name="taxId" value={formData.taxId} onChange={handleChange} className="w-full rounded border-gray-300 border p-2" required maxLength="8" />
+                        <input type="text" name="taxId" value={formData.taxId} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required maxLength="8" />
                       </div>
                     </div>
                   )}
                 </div>
               </section>
 
-              {/* === 區塊六：合約與聲明 === */}
+              {/* === 區塊六：法律條款 === */}
               <section className="bg-gray-50 p-6 rounded-lg border border-gray-200 text-sm text-gray-600">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">五、法律與條款確認</h2>
                 <div className="space-y-6">
                   
                   {/* 模組一：一般聲明 (必顯示) */}
                   <label className="flex items-start">
-                    <input type="checkbox" name="agreedGeneral" checked={formData.agreedGeneral} onChange={handleChange} className="mt-1 h-5 w-5 text-[#8A1C14] rounded" required />
+                    <input type="checkbox" name="agreedGeneral" checked={formData.agreedGeneral} onChange={handleChange} className="mt-1 h-5 w-5 text-[#8A1C14] rounded focus:ring-[#8A1C14]" required />
                     <span className="ml-3 leading-relaxed">
                       <strong className="text-gray-900">【一般旅遊契約與報名聲明】</strong><br/>
                       我已詳細閱讀並同意《國外旅遊定型化契約書》規定，瞭解若因個人因素取消，將依照契約第十三條扣除手續費或實際損失。我確認護照效期具備回國日起算六個月以上。同意陽光小屋旅遊依《個人資料保護法》處理報名所需特種個資。若報名 Lite 行程，瞭解費用不含機票、部分餐食及小費。
                     </span>
                   </label>
 
-                  {/* 模組二：西藏規定 (西藏團顯示) */}
+                  {/* 模組二：西藏規定 (動態顯示：西藏團 或 TC自駕團) */}
                   {isTibetTour && (
                     <label className="flex items-start">
-                      <input type="checkbox" name="agreedTibet" checked={formData.agreedTibet} onChange={handleChange} className="mt-1 h-5 w-5 text-[#8A1C14] rounded" required />
+                      <input type="checkbox" name="agreedTibet" checked={formData.agreedTibet} onChange={handleChange} className="mt-1 h-5 w-5 text-[#8A1C14] rounded focus:ring-[#8A1C14]" required />
                       <span className="ml-3 leading-relaxed">
                         <strong className="text-[#8A1C14]">【西藏入藏專屬特殊規範】</strong><br/>
                         本人聲明非軍警、國安人員或記者，知悉若隱瞞身分導致無法辦理入藏函，衍生費用由本人負擔。本人同意嚴格遵守指定集合時間，錯過將無退款及補救措施。若滿64歲，同意於出發前三個月完成簡易健檢，並於限期內繳交清晰之護照與台胞證正反面影本。
@@ -440,10 +466,10 @@ export default function RegistrationForm() {
                     </label>
                   )}
 
-                  {/* 模組三：自駕規定 (自駕團顯示) */}
+                  {/* 模組三：自駕規定 (動態顯示：自駕團) */}
                   {isDrivingTour && (
                     <label className="flex items-start">
-                      <input type="checkbox" name="agreedDriving" checked={formData.agreedDriving} onChange={handleChange} className="mt-1 h-5 w-5 text-[#8A1C14] rounded" required />
+                      <input type="checkbox" name="agreedDriving" checked={formData.agreedDriving} onChange={handleChange} className="mt-1 h-5 w-5 text-[#8A1C14] rounded focus:ring-[#8A1C14]" required />
                       <span className="ml-3 leading-relaxed">
                         <strong className="text-[#8A1C14]">【中國自駕行程切結書】</strong><br/>
                         本人確認具備合格且有效之駕駛執照。自駕期間若因個人過失或違反交通法規導致車損、傷亡或罰單，本人願負擔所有賠償。本人承諾嚴格遵守車隊領隊指揮，嚴禁酒駕或危險駕駛，若嚴重違反，公司有權立即終止本人駕駛權利且不退費。
