@@ -57,7 +57,8 @@ const tourData = [
 ];
 
 export default function RegistrationForm() {
-  // 表單資料狀態管理
+  const [isGatewayPassed, setIsGatewayPassed] = useState(false);
+
   const [formData, setFormData] = useState({
     series: "", tourName: "", days: "", schedule: "",
     name: "", nationality: "", gender: "", birthDate: "", idNumber: "", phone: "", email: "", lineId: "",
@@ -67,22 +68,19 @@ export default function RegistrationForm() {
     agreedGeneral: false, agreedTibet: false, agreedDriving: false
   });
 
-  // 系統狀態
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
 
-  // 動態推導目前可選行程與條件顯示
   const availableTours = tourData.find(s => s.series === formData.series)?.tours || [];
   const currentTourDetail = availableTours.find(t => t.name === formData.tourName);
   const availableSchedules = currentTourDetail?.schedules || [];
   const showDayOptions = currentTourDetail?.hasDayOptions || false;
-  
-  // 法律條款動態判定邏輯
+
+  // 判定是否適用西藏規範與自駕切結書
   const isDrivingTour = formData.series === "中國自駕系列";
   const isTibetTour = formData.series === "西藏系列" || (formData.tourName && formData.tourName.startsWith("TC"));
 
-  // 處理輸入變更
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -91,7 +89,6 @@ export default function RegistrationForm() {
     }));
   };
 
-  // 處理系列變更
   const handleSeriesChange = (e) => {
     setFormData(prev => ({
       ...prev,
@@ -102,12 +99,10 @@ export default function RegistrationForm() {
     }));
   };
 
-  // 檢查必填條款
   const canSubmit = formData.agreedGeneral && 
                     (!isTibetTour || formData.agreedTibet) && 
                     (!isDrivingTour || formData.agreedDriving);
 
-  // 複製帳號功能
   const handleCopyAccount = async () => {
     try {
       await navigator.clipboard.writeText("20480100005240");
@@ -118,7 +113,6 @@ export default function RegistrationForm() {
     }
   };
 
-  // 送出表單到 SheetDB
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!canSubmit) return;
@@ -184,7 +178,7 @@ export default function RegistrationForm() {
     }
   };
 
-  // 成功送出畫面 (包含匯款資訊與查詢教學)
+  // 成功送出畫面
   if (submitSuccess) {
     return (
       <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center p-4">
@@ -243,13 +237,96 @@ export default function RegistrationForm() {
     );
   }
 
+  // 入口同意關卡 (模組一：一般旅遊契約與報名聲明 6 點)
+  if (!isGatewayPassed) {
+    return (
+      <div className="min-h-screen bg-[#FDFBF7] py-10 px-4 sm:px-6 lg:px-8 font-sans flex items-center justify-center">
+        <div className="max-w-3xl w-full bg-white rounded-xl shadow-lg overflow-hidden border-t-8 border-[#8A1C14]">
+          <div className="p-6 sm:p-10">
+            <Link href="/" className="inline-flex items-center text-[#8A1C14] hover:underline mb-6 text-sm">
+              ← 返回首頁
+            </Link>
+            
+            <div className="text-center mb-6 border-b pb-4">
+              <h1 className="text-2xl font-bold text-gray-900 tracking-wide">行程報名須知與契約聲明</h1>
+              <p className="text-sm text-gray-500 mt-1">為保障您的旅遊權益，請詳閱並確認以下契約條款後開始填表</p>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg border border-gray-200 p-5 sm:p-6 mb-6 max-h-[460px] overflow-y-auto space-y-5 text-sm text-gray-700 leading-relaxed">
+              <h2 className="text-base font-bold text-[#8A1C14] border-b border-gray-200 pb-2">
+                【一般旅遊契約與報名聲明】
+              </h2>
+
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-1">1. 定型化契約與個資同意：</h3>
+                  <p className="text-gray-600">本公司各項旅遊行程均依據交通部觀光署頒布之《國外旅遊定型化契約書》規範執行。旅客於本系統完成報名並繳交訂金後，即視為已充分審閱並同意該契約之所有條款。為辦理旅遊業務，旅客同意陽光小屋旅遊依《個人資料保護法》蒐集、處理及利用本人之個人資料（含護照、台胞證等特種個資）。</p>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-1">2. 報名繳費與取消退費：</h3>
+                  <p className="text-gray-600">報名經確認後，請於期限內繳付訂金，逾期未繳者系統將自動取消保留名額。若旅客因個人因素取消行程，取消扣款規定將嚴格依照《國外旅遊定型化契約書》第十三條之級距比例辦理。若機票或飯店已開立且產生之實際損失高於契約規定之比例，將依實際損失金額向旅客收取。</p>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-1">3. 護照效期與簽證責任：</h3>
+                  <p className="text-gray-600">旅客請務必自行確認護照效期於「回國日」起算，必須具備<strong className="text-gray-900 font-semibold">六個月以上</strong>之有效效期。若因旅客提供之護照、台胞證等證件資料有誤，或因個人因素導致無法順利登機或入境，所衍生之所有損失及額外費用，均由旅客自行負責。</p>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-1">4. 住宿房型與單人房差：</h3>
+                  <p className="text-gray-600">團體行程住宿以「雙人房（雙床）」為基礎。若旅客為單人報名且選擇「要求單人房」，須補足單人房差費用；若選擇「可併房」，本公司將協助安排與其他同性團員同房，若最終無法成功配房，仍須補足單人房差。</p>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-1">5. 行前資訊與集合義務：</h3>
+                  <p className="text-gray-600">詳閱行前通知書並確實瞭解「集合時間」、「集合地點」與「送機資訊」為旅客之基本義務。若旅客因遲到錯過航班或集合，視同自願放棄行程，本公司將不予退費。</p>
+                </div>
+
+                <div className="bg-red-50/60 p-3 rounded border border-red-100">
+                  <h3 className="font-bold text-[#8A1C14] mb-1">6. Lite行程特別聲明：</h3>
+                  <p className="text-gray-700">報名 Lite 行程之旅客請務必注意，Lite 系列行程之團費<strong className="text-[#8A1C14] font-semibold">不包含全段機票、部分餐食及當地司機與領隊之小費</strong>，詳細費用明細請依該行程之網頁說明為準。</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-lg bg-[#fcf8f2] border border-[#f5e6d3] mb-6">
+              <label className="flex items-start cursor-pointer group">
+                <input 
+                  type="checkbox" 
+                  name="agreedGeneral" 
+                  checked={formData.agreedGeneral} 
+                  onChange={handleChange} 
+                  className="mt-1 h-5 w-5 text-[#8A1C14] border-gray-300 rounded focus:ring-[#8A1C14] cursor-pointer" 
+                />
+                <span className="ml-3 text-sm font-medium text-gray-800 leading-relaxed group-hover:text-[#8A1C14] transition-colors">
+                  本人已詳細閱讀、充分理解並完全同意上述【一般旅遊契約與報名聲明】所有條款內容與各項權益規範。
+                </span>
+              </label>
+            </div>
+
+            <button
+              onClick={() => setIsGatewayPassed(true)}
+              disabled={!formData.agreedGeneral}
+              className={`w-full py-4 px-4 text-lg font-bold rounded-lg text-white transition-all shadow-md
+                ${formData.agreedGeneral ? 'bg-[#8A1C14] hover:bg-[#9c221a] hover:shadow-lg' : 'bg-gray-300 cursor-not-allowed'}
+              `}
+            >
+              我已同意條款，開始填寫報名表 →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // 報名表單主體畫面
   return (
-    <div className="min-h-screen bg-[#FDFBF7] py-8 px-4 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen bg-[#FDFBF7] py-8 px-4 sm:px-6 lg:px-8 font-sans animate-fade-in-up">
       <div className="max-w-4xl mx-auto">
-        <Link href="/" className="inline-flex items-center text-[#8A1C14] hover:underline mb-6">
-          ← 返回首頁
-        </Link>
+        <button onClick={() => setIsGatewayPassed(false)} className="inline-flex items-center text-[#8A1C14] hover:underline mb-6 text-sm">
+          ← 上一步：返回重閱一般旅遊契約
+        </button>
         
         <div className="bg-white rounded-xl shadow-md overflow-hidden border-t-8 border-[#8A1C14]">
           <div className="p-8">
@@ -346,192 +423,4 @@ export default function RegistrationForm() {
                     <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">LINE 名稱或 ID</label>
-                    <input type="text" name="lineId" value={formData.lineId} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" placeholder="方便業務聯繫用" />
-                  </div>
-                </div>
-              </section>
-
-              {/* 區塊三：需求偏好 */}
-              <section>
-                <h2 className="text-xl font-semibold text-gray-900 mb-4 border-b pb-2">三、行程需求與偏好</h2>
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">飲食習慣 *</label>
-                    <select name="diet" value={formData.diet} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required>
-                      <option value="">請選擇</option>
-                      <option value="葷食">葷食</option>
-                      <option value="素食">素食</option>
-                    </select>
-                  </div>
-                  {formData.diet === "素食" && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">素食備註</label>
-                      <input type="text" name="dietNotes" value={formData.dietNotes} onChange={handleChange} placeholder="例：全素、蛋奶素、鍋邊素" className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" />
-                    </div>
-                  )}
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">住宿安排 *</label>
-                    <select name="roomType" value={formData.roomType} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required>
-                      <option value="">請選擇房型安排</option>
-                      <option value="單人報名，要求單人房 (需補單房差)">單人報名，要求單人房 (需補單房差)</option>
-                      <option value="單人報名，可併房 (雙床房)">單人報名，可併房 (雙床房)</option>
-                      <option value="多人報名，雙床房 (兩張單人床)">多人報名，雙床房 (兩張單人床)</option>
-                      <option value="多人報名，一大床房">多人報名，一大床房</option>
-                    </select>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">其他需求留言</label>
-                    <textarea name="otherReq" value={formData.otherReq} onChange={handleChange} rows="2" className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]"></textarea>
-                  </div>
-                </div>
-              </section>
-
-              {/* 區塊四：自駕配置 */}
-              {isDrivingTour && (
-                <section className="bg-gray-100 p-6 rounded-lg border border-gray-200">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    🚗 自駕車輛與分組配置
-                  </h2>
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">自駕分組 *</label>
-                      <select name="driveGroup" value={formData.driveGroup} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required>
-                        <option value="">請選擇</option>
-                        <option value="開車組">🚙 開車組</option>
-                        <option value="重機組">🏍️ 重機組</option>
-                      </select>
-                    </div>
-
-                    {formData.driveGroup === "開車組" && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">車輛配置 *</label>
-                        <select name="driveRole" value={formData.driveRole} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required>
-                          <option value="">請選擇</option>
-                          <option value="四人一車">四人一車</option>
-                          <option value="三人一車">三人一車</option>
-                          <option value="兩人一車">兩人一車</option>
-                        </select>
-                      </div>
-                    )}
-
-                    {formData.driveGroup === "重機組" && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">乘車角色 *</label>
-                        <select name="driveRole" value={formData.driveRole} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required>
-                          <option value="">請選擇</option>
-                          <option value="駕駛">駕駛</option>
-                          <option value="乘客">乘客</option>
-                        </select>
-                      </div>
-                    )}
-
-                    {formData.driveGroup === "重機組" && formData.driveRole === "駕駛" && (
-                      <div className="sm:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">重機車種選擇 *</label>
-                        <select name="motoModel" value={formData.motoModel} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required>
-                          <option value="">請選擇車種</option>
-                          <option value="450~700cc ADV或低座高車款">450~700cc ADV 或低座高車款</option>
-                          <option value="800~1000cc ADV或低座高車款">800~1000cc ADV 或低座高車款</option>
-                          <option value="BMW R1250GS">BMW R1250GS</option>
-                        </select>
-                      </div>
-                    )}
-                  </div>
-                </section>
-              )}
-
-              {/* 區塊五：結帳與發票 */}
-              <section>
-                <h2 className="text-xl font-semibold text-gray-900 mb-4 border-b pb-2">四、結帳與發票資訊</h2>
-                <div className="bg-[#fcf8f2] p-4 rounded mb-6 text-center border border-[#f5e6d3]">
-                  <p className="text-lg font-medium text-[#8A1C14]">行程支付訂金：每位 15,000 元新台幣</p>
-                </div>
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">選擇支付方式 *</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <label className={`border-2 rounded-lg p-4 cursor-pointer text-center transition-colors ${formData.paymentMethod === '匯款' ? 'border-[#8A1C14] bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                      <input type="radio" name="paymentMethod" value="匯款" onChange={handleChange} className="hidden" required />
-                      <span className="block text-lg font-medium text-gray-900">🏦 銀行匯款</span>
-                      <span className="block text-sm text-gray-500 mt-1">送出後請於查詢系統回填後五碼</span>
-                    </label>
-                    <label className={`border-2 rounded-lg p-4 cursor-pointer text-center transition-colors ${formData.paymentMethod === '刷卡' ? 'border-[#8A1C14] bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                      <input type="radio" name="paymentMethod" value="刷卡" onChange={handleChange} className="hidden" required />
-                      <span className="block text-lg font-medium text-gray-900">💳 信用卡刷卡</span>
-                      <span className="block text-sm text-gray-500 mt-1">送出後專員將發送刷卡連結</span>
-                    </label>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <label className="flex items-center">
-                    <input type="checkbox" name="needTaxId" checked={formData.needTaxId} onChange={handleChange} className="h-5 w-5 text-[#8A1C14] rounded focus:ring-[#8A1C14]" />
-                    <span className="ml-2 text-gray-700">代轉收據需要開立統一編號</span>
-                  </label>
-                  {formData.needTaxId && (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 bg-gray-50 p-4 rounded border">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">公司抬頭 *</label>
-                        <input type="text" name="companyTitle" value={formData.companyTitle} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">統一編號 *</label>
-                        <input type="text" name="taxId" value={formData.taxId} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required maxLength="8" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              {/* 區塊六：法律條款 */}
-              <section className="bg-gray-50 p-6 rounded-lg border border-gray-200 text-sm text-gray-600">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">五、法律與條款確認</h2>
-                <div className="space-y-6">
-                  <label className="flex items-start">
-                    <input type="checkbox" name="agreedGeneral" checked={formData.agreedGeneral} onChange={handleChange} className="mt-1 h-5 w-5 text-[#8A1C14] rounded focus:ring-[#8A1C14]" required />
-                    <span className="ml-3 leading-relaxed">
-                      <strong className="text-gray-900">【一般旅遊契約與報名聲明】</strong><br/>
-                      我已詳細閱讀並同意《國外旅遊定型化契約書》規定，瞭解若因個人因素取消，將依照契約第十三條扣除手續費或實際損失。我確認護照效期具備回國日起算六個月以上。同意陽光小屋旅遊依《個人資料保護法》處理報名所需特種個資。若報名 Lite 行程，瞭解費用不含機票、部分餐食及小費。
-                    </span>
-                  </label>
-
-                  {isTibetTour && (
-                    <label className="flex items-start">
-                      <input type="checkbox" name="agreedTibet" checked={formData.agreedTibet} onChange={handleChange} className="mt-1 h-5 w-5 text-[#8A1C14] rounded focus:ring-[#8A1C14]" required />
-                      <span className="ml-3 leading-relaxed">
-                        <strong className="text-[#8A1C14]">【西藏入藏專屬特殊規範】</strong><br/>
-                        本人聲明非軍警、國安人員或記者，知悉若隱瞞身分導致無法辦理入藏函，衍生費用由本人負擔。本人同意嚴格遵守指定集合時間，錯過將無退款及補救措施。若滿64歲，同意於出發前三個月完成簡易健檢，並於限期內繳交清晰之護照與台胞證正反面影本。
-                      </span>
-                    </label>
-                  )}
-
-                  {isDrivingTour && (
-                    <label className="flex items-start">
-                      <input type="checkbox" name="agreedDriving" checked={formData.agreedDriving} onChange={handleChange} className="mt-1 h-5 w-5 text-[#8A1C14] rounded focus:ring-[#8A1C14]" required />
-                      <span className="ml-3 leading-relaxed">
-                        <strong className="text-[#8A1C14]">【中國自駕行程切結書】</strong><br/>
-                        本人確認具備合格且有效之駕駛執照。自駕期間若因個人過失或違反交通法規導致車損、傷亡或罰單，本人願負擔所有賠償。本人承諾嚴格遵守車隊領隊指揮，嚴禁酒駕或危險駕駛，若嚴重違反，公司有權立即終止本人駕駛權利且不退費。
-                      </span>
-                    </label>
-                  )}
-                </div>
-              </section>
-
-              <div className="pt-4 border-t border-gray-200">
-                <button
-                  type="submit"
-                  disabled={!canSubmit || isSubmitting}
-                  className={`w-full py-4 px-4 text-xl font-bold rounded-lg text-white transition-all shadow-md
-                    ${canSubmit && !isSubmitting ? 'bg-[#8A1C14] hover:bg-[#9c221a] hover:shadow-lg' : 'bg-gray-400 cursor-not-allowed'}
-                  `}
-                >
-                  {isSubmitting ? '資料傳送中，請稍候...' : '確認同意條款並送出報名'}
-                </button>
-              </div>
-
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+                    <label
