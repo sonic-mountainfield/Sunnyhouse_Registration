@@ -287,4 +287,190 @@ export default function RegistrationForm() {
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">飲食習慣 *</label>
-                    <select name="diet" value={formData.diet} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F5
+                    <select name="diet" value={formData.diet} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required>
+                      <option value="">請選擇</option>
+                      <option value="葷食">葷食</option>
+                      <option value="素食">素食</option>
+                    </select>
+                  </div>
+                  {formData.diet === "素食" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">素食備註</label>
+                      <input type="text" name="dietNotes" value={formData.dietNotes} onChange={handleChange} placeholder="例：全素、蛋奶素、鍋邊素" className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" />
+                    </div>
+                  )}
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">住宿安排 *</label>
+                    <select name="roomType" value={formData.roomType} onChange={handleChange} className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]" required>
+                      <option value="">請選擇房型安排</option>
+                      <option value="單人報名，要求單人房 (需補單房差)">單人報名，要求單人房 (需補單房差)</option>
+                      <option value="單人報名，可併房 (雙床房)">單人報名，可併房 (雙床房)</option>
+                      <option value="多人報名，雙床房 (兩張單人床)">多人報名，雙床房 (兩張單人床)</option>
+                      <option value="多人報名，一大床房">多人報名，一大床房</option>
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">其他需求留言</label>
+                    <textarea name="otherReq" value={formData.otherReq} onChange={handleChange} rows="2" className="w-full rounded border-gray-300 border p-2 focus:ring-[#F59E0B]"></textarea>
+                  </div>
+                </div>
+              </section>
+
+              {/* === 區塊四：自駕配置 (動態顯示) === */}
+              {isDrivingTour && (
+                <section className="bg-gray-100 p-6 rounded-lg border border-gray-200">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    🚗 自駕車輛與分組配置
+                  </h2>
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">自駕分組 *</label>
+                      <select name="driveGroup" value={formData.driveGroup} onChange={handleChange} className="w-full rounded border-gray-300 border p-2" required>
+                        <option value="">請選擇</option>
+                        <option value="開車組">🚙 開車組</option>
+                        <option value="重機組">🏍️ 重機組</option>
+                      </select>
+                    </div>
+
+                    {formData.driveGroup === "開車組" && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">車輛配置 *</label>
+                        <select name="driveRole" value={formData.driveRole} onChange={handleChange} className="w-full rounded border-gray-300 border p-2" required>
+                          <option value="">請選擇</option>
+                          <option value="四人一車">四人一車</option>
+                          <option value="三人一車">三人一車</option>
+                          <option value="兩人一車">兩人一車</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {formData.driveGroup === "重機組" && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">乘車角色 *</label>
+                        <select name="driveRole" value={formData.driveRole} onChange={handleChange} className="w-full rounded border-gray-300 border p-2" required>
+                          <option value="">請選擇</option>
+                          <option value="駕駛">駕駛</option>
+                          <option value="乘客">乘客</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {formData.driveGroup === "重機組" && formData.driveRole === "駕駛" && (
+                      <div className="sm:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">重機車種選擇 *</label>
+                        <select name="motoModel" value={formData.motoModel} onChange={handleChange} className="w-full rounded border-gray-300 border p-2" required>
+                          <option value="">請選擇車種</option>
+                          <option value="450~700cc ADV或低座高車款">450~700cc ADV 或低座高車款</option>
+                          <option value="800~1000cc ADV或低座高車款">800~1000cc ADV 或低座高車款</option>
+                          <option value="BMW R1250GS">BMW R1250GS</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {/* === 區塊五：結帳與發票 === */}
+              <section>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4 border-b pb-2">四、結帳與發票資訊</h2>
+                
+                <div className="bg-[#fcf8f2] p-4 rounded mb-6 text-center border border-[#f5e6d3]">
+                  <p className="text-lg font-medium text-[#8A1C14]">行程支付訂金：每位 15,000 元新台幣</p>
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">選擇支付方式 *</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className={`border-2 rounded-lg p-4 cursor-pointer text-center transition-colors ${formData.paymentMethod === '匯款' ? 'border-[#8A1C14] bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <input type="radio" name="paymentMethod" value="匯款" onChange={handleChange} className="hidden" required />
+                      <span className="block text-lg font-medium text-gray-900">🏦 銀行匯款</span>
+                      <span className="block text-sm text-gray-500 mt-1">送出後請於查詢系統回填後五碼</span>
+                    </label>
+                    <label className={`border-2 rounded-lg p-4 cursor-pointer text-center transition-colors ${formData.paymentMethod === '刷卡' ? 'border-[#8A1C14] bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <input type="radio" name="paymentMethod" value="刷卡" onChange={handleChange} className="hidden" required />
+                      <span className="block text-lg font-medium text-gray-900">💳 信用卡刷卡</span>
+                      <span className="block text-sm text-gray-500 mt-1">送出後專員將發送刷卡連結</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="flex items-center">
+                    <input type="checkbox" name="needTaxId" checked={formData.needTaxId} onChange={handleChange} className="h-5 w-5 text-[#8A1C14] rounded focus:ring-[#8A1C14]" />
+                    <span className="ml-2 text-gray-700">代轉收據需要開立統一編號</span>
+                  </label>
+                  
+                  {formData.needTaxId && (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 bg-gray-50 p-4 rounded border">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">公司抬頭 *</label>
+                        <input type="text" name="companyTitle" value={formData.companyTitle} onChange={handleChange} className="w-full rounded border-gray-300 border p-2" required />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">統一編號 *</label>
+                        <input type="text" name="taxId" value={formData.taxId} onChange={handleChange} className="w-full rounded border-gray-300 border p-2" required maxLength="8" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* === 區塊六：合約與聲明 === */}
+              <section className="bg-gray-50 p-6 rounded-lg border border-gray-200 text-sm text-gray-600">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">五、法律與條款確認</h2>
+                <div className="space-y-6">
+                  
+                  {/* 模組一：一般聲明 (必顯示) */}
+                  <label className="flex items-start">
+                    <input type="checkbox" name="agreedGeneral" checked={formData.agreedGeneral} onChange={handleChange} className="mt-1 h-5 w-5 text-[#8A1C14] rounded" required />
+                    <span className="ml-3 leading-relaxed">
+                      <strong className="text-gray-900">【一般旅遊契約與報名聲明】</strong><br/>
+                      我已詳細閱讀並同意《國外旅遊定型化契約書》規定，瞭解若因個人因素取消，將依照契約第十三條扣除手續費或實際損失。我確認護照效期具備回國日起算六個月以上。同意陽光小屋旅遊依《個人資料保護法》處理報名所需特種個資。若報名 Lite 行程，瞭解費用不含機票、部分餐食及小費。
+                    </span>
+                  </label>
+
+                  {/* 模組二：西藏規定 (西藏團顯示) */}
+                  {isTibetTour && (
+                    <label className="flex items-start">
+                      <input type="checkbox" name="agreedTibet" checked={formData.agreedTibet} onChange={handleChange} className="mt-1 h-5 w-5 text-[#8A1C14] rounded" required />
+                      <span className="ml-3 leading-relaxed">
+                        <strong className="text-[#8A1C14]">【西藏入藏專屬特殊規範】</strong><br/>
+                        本人聲明非軍警、國安人員或記者，知悉若隱瞞身分導致無法辦理入藏函，衍生費用由本人負擔。本人同意嚴格遵守指定集合時間，錯過將無退款及補救措施。若滿64歲，同意於出發前三個月完成簡易健檢，並於限期內繳交清晰之護照與台胞證正反面影本。
+                      </span>
+                    </label>
+                  )}
+
+                  {/* 模組三：自駕規定 (自駕團顯示) */}
+                  {isDrivingTour && (
+                    <label className="flex items-start">
+                      <input type="checkbox" name="agreedDriving" checked={formData.agreedDriving} onChange={handleChange} className="mt-1 h-5 w-5 text-[#8A1C14] rounded" required />
+                      <span className="ml-3 leading-relaxed">
+                        <strong className="text-[#8A1C14]">【中國自駕行程切結書】</strong><br/>
+                        本人確認具備合格且有效之駕駛執照。自駕期間若因個人過失或違反交通法規導致車損、傷亡或罰單，本人願負擔所有賠償。本人承諾嚴格遵守車隊領隊指揮，嚴禁酒駕或危險駕駛，若嚴重違反，公司有權立即終止本人駕駛權利且不退費。
+                      </span>
+                    </label>
+                  )}
+
+                </div>
+              </section>
+
+              {/* === 送出按鈕 === */}
+              <div className="pt-4 border-t border-gray-200">
+                <button
+                  type="submit"
+                  disabled={!canSubmit || isSubmitting}
+                  className={`w-full py-4 px-4 text-xl font-bold rounded-lg text-white transition-all shadow-md
+                    ${canSubmit && !isSubmitting ? 'bg-[#8A1C14] hover:bg-[#9c221a] hover:shadow-lg' : 'bg-gray-400 cursor-not-allowed'}
+                  `}
+                >
+                  {isSubmitting ? '資料傳送中，請稍候...' : '確認同意條款並送出報名'}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
