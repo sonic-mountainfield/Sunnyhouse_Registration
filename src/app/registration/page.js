@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
-// 完整旅遊行程與檔期資料庫 (依據您的最新需求建立)
+// 完整旅遊行程與檔期資料庫
 const tourData = [
   {
     series: "西藏系列",
@@ -78,10 +78,8 @@ export default function RegistrationForm() {
   const availableSchedules = currentTourDetail?.schedules || [];
   const showDayOptions = currentTourDetail?.hasDayOptions || false;
   
-  // 法律條款動態判定邏輯：
-  // 1. 若選中國自駕系列，需勾自駕條款
+  // 法律條款動態判定邏輯
   const isDrivingTour = formData.series === "中國自駕系列";
-  // 2. 若選西藏系列，或自駕行程開頭為 "TC" (去西藏)，需勾入藏條款
   const isTibetTour = formData.series === "西藏系列" || (formData.tourName && formData.tourName.startsWith("TC"));
 
   // 處理輸入變更
@@ -93,7 +91,7 @@ export default function RegistrationForm() {
     }));
   };
 
-  // 處理系列變更 (切換系列時，重置下層選項與條款打勾狀態)
+  // 處理系列變更
   const handleSeriesChange = (e) => {
     setFormData(prev => ({
       ...prev,
@@ -104,10 +102,21 @@ export default function RegistrationForm() {
     }));
   };
 
-  // 檢查所有必填條款是否勾選 (防呆機制)
+  // 檢查必填條款
   const canSubmit = formData.agreedGeneral && 
                     (!isTibetTour || formData.agreedTibet) && 
                     (!isDrivingTour || formData.agreedDriving);
+
+  // 複製帳號功能
+  const handleCopyAccount = async () => {
+    try {
+      await navigator.clipboard.writeText("20480100005240");
+      alert("✅ 銀行帳號已成功複製！");
+    } catch (err) {
+      console.error("複製失敗:", err);
+      alert("複製失敗，請手動選取複製。");
+    }
+  };
 
   // 送出表單到 SheetDB
   const handleSubmit = async (e) => {
@@ -116,13 +125,11 @@ export default function RegistrationForm() {
     
     setIsSubmitting(true);
 
-    // 產生訂單編號 (SY + YYMMDD + 3碼隨機)
     const dateStr = new Date().toISOString().slice(2,10).replace(/-/g, '');
     const randomStr = Math.random().toString(36).substring(2, 5).toUpperCase();
     const newOrderNumber = `SY${dateStr}-${randomStr}`;
     setOrderNumber(newOrderNumber);
 
-    // 準備寫入 SheetDB 的資料格式 (對應 Excel 欄位名稱)
     const payload = {
       data: [{
         "訂單編號": newOrderNumber,
@@ -177,21 +184,59 @@ export default function RegistrationForm() {
     }
   };
 
-  // 成功送出畫面
+  // 成功送出畫面 (包含匯款資訊與查詢教學)
   if (submitSuccess) {
     return (
       <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center border-t-8 border-[#8A1C14]">
+        <div className="bg-white p-8 rounded-xl shadow-lg max-w-lg w-full text-center border-t-8 border-[#8A1C14]">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">報名資料已送出！</h2>
-          <p className="text-gray-600 mb-4">您的訂單編號為：<br/><span className="text-xl font-mono text-[#8A1C14] font-bold block mt-1">{orderNumber}</span></p>
-          <p className="text-sm text-gray-500 mb-8">感謝您的報名，我們的業務專員將會盡快與您聯繫確認後續事宜。</p>
-          <Link href="/" className="bg-[#8A1C14] text-white px-6 py-2 rounded hover:bg-[#9c221a] transition-colors inline-block">
-            返回首頁
+          <p className="text-gray-600 mb-6">您的訂單編號為：<br/><span className="text-2xl font-mono text-[#8A1C14] font-bold block mt-2">{orderNumber}</span></p>
+          
+          <div className="bg-gray-50 p-6 rounded-lg text-left mb-8 border border-gray-200">
+            {formData.paymentMethod === '匯款' ? (
+              <>
+                <h3 className="font-bold text-[#8A1C14] mb-4 text-lg border-b border-gray-200 pb-2">🏦 匯款資訊與後續步驟</h3>
+                <ul className="text-gray-700 space-y-2 mb-5">
+                  <li><strong>銀行：</strong>台新銀行 (代碼 812)</li>
+                  <li><strong>分行：</strong>內湖分行</li>
+                  <li><strong>戶名：</strong>德吉旅行社有限公司</li>
+                  <li className="flex items-center gap-3 mt-3 p-3 bg-white rounded border border-gray-200">
+                    <span className="font-mono text-lg font-bold tracking-wider text-gray-900">20480100005240</span>
+                    <button 
+                      onClick={handleCopyAccount}
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm px-3 py-1.5 rounded transition-colors ml-auto flex items-center gap-1 font-medium"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                      複製帳號
+                    </button>
+                  </li>
+                </ul>
+                <div className="bg-orange-50 p-4 rounded border border-orange-100 text-sm text-orange-800 leading-relaxed">
+                  <strong>💡 匯款完成後請注意：</strong><br/>
+                  請返回首頁進入 <Link href="/query" className="underline font-bold text-[#8A1C14]">客戶查詢系統</Link>，輸入您的「姓名」與「身分證字號」，並在系統中回填您的<strong>帳號後五碼</strong>，以便財務人員進行對帳。
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="font-bold text-[#8A1C14] mb-4 text-lg border-b border-gray-200 pb-2">💳 刷卡支付後續步驟</h3>
+                <div className="text-gray-700 space-y-3">
+                  <p>感謝您選擇信用卡支付。為了保障交易安全，業務專員在核對報名資料後，會為您建立專屬的加密刷卡連結。</p>
+                  <div className="bg-orange-50 p-4 rounded border border-orange-100 text-sm text-orange-800 leading-relaxed mt-4">
+                    <strong>💡 如何獲取刷卡連結：</strong><br/>
+                    稍後請返回首頁進入 <Link href="/query" className="underline font-bold text-[#8A1C14]">客戶查詢系統</Link>。當專員建檔完成後，您就可以在查詢系統中直接點擊按鈕，前往安全的第三方金流頁面完成訂金支付。
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <Link href="/" className="bg-[#8A1C14] text-white px-8 py-3 rounded-lg hover:bg-[#9c221a] transition-colors inline-block font-bold shadow-md">
+            ← 返回首頁
           </Link>
         </div>
       </div>
@@ -215,7 +260,7 @@ export default function RegistrationForm() {
 
             <form onSubmit={handleSubmit} className="space-y-10">
               
-              {/* === 區塊一：行程選擇 === */}
+              {/* 區塊一：行程選擇 */}
               <section className="bg-orange-50/50 p-6 rounded-lg border border-orange-100">
                 <h2 className="text-xl font-semibold text-[#8A1C14] mb-4 flex items-center gap-2">
                   <span className="bg-[#8A1C14] text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-sm">1</span> 選擇行程與出發檔期
@@ -258,7 +303,7 @@ export default function RegistrationForm() {
                 </div>
               </section>
 
-              {/* === 區塊二：旅客基本資料 === */}
+              {/* 區塊二：旅客基本資料 */}
               <section>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4 border-b pb-2">二、旅客基本資料</h2>
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -307,7 +352,7 @@ export default function RegistrationForm() {
                 </div>
               </section>
 
-              {/* === 區塊三：需求偏好 === */}
+              {/* 區塊三：需求偏好 */}
               <section>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4 border-b pb-2">三、行程需求與偏好</h2>
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -342,7 +387,7 @@ export default function RegistrationForm() {
                 </div>
               </section>
 
-              {/* === 區塊四：自駕配置 (條件渲染) === */}
+              {/* 區塊四：自駕配置 */}
               {isDrivingTour && (
                 <section className="bg-gray-100 p-6 rounded-lg border border-gray-200">
                   <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -396,14 +441,12 @@ export default function RegistrationForm() {
                 </section>
               )}
 
-              {/* === 區塊五：結帳與發票 === */}
+              {/* 區塊五：結帳與發票 */}
               <section>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4 border-b pb-2">四、結帳與發票資訊</h2>
-                
                 <div className="bg-[#fcf8f2] p-4 rounded mb-6 text-center border border-[#f5e6d3]">
                   <p className="text-lg font-medium text-[#8A1C14]">行程支付訂金：每位 15,000 元新台幣</p>
                 </div>
-
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">選擇支付方式 *</label>
                   <div className="grid grid-cols-2 gap-4">
@@ -419,13 +462,11 @@ export default function RegistrationForm() {
                     </label>
                   </div>
                 </div>
-
                 <div className="space-y-4">
                   <label className="flex items-center">
                     <input type="checkbox" name="needTaxId" checked={formData.needTaxId} onChange={handleChange} className="h-5 w-5 text-[#8A1C14] rounded focus:ring-[#8A1C14]" />
                     <span className="ml-2 text-gray-700">代轉收據需要開立統一編號</span>
                   </label>
-                  
                   {formData.needTaxId && (
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 bg-gray-50 p-4 rounded border">
                       <div>
@@ -441,12 +482,10 @@ export default function RegistrationForm() {
                 </div>
               </section>
 
-              {/* === 區塊六：法律條款 === */}
+              {/* 區塊六：法律條款 */}
               <section className="bg-gray-50 p-6 rounded-lg border border-gray-200 text-sm text-gray-600">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">五、法律與條款確認</h2>
                 <div className="space-y-6">
-                  
-                  {/* 模組一：一般聲明 (必顯示) */}
                   <label className="flex items-start">
                     <input type="checkbox" name="agreedGeneral" checked={formData.agreedGeneral} onChange={handleChange} className="mt-1 h-5 w-5 text-[#8A1C14] rounded focus:ring-[#8A1C14]" required />
                     <span className="ml-3 leading-relaxed">
@@ -455,7 +494,6 @@ export default function RegistrationForm() {
                     </span>
                   </label>
 
-                  {/* 模組二：西藏規定 (動態顯示：西藏團 或 TC自駕團) */}
                   {isTibetTour && (
                     <label className="flex items-start">
                       <input type="checkbox" name="agreedTibet" checked={formData.agreedTibet} onChange={handleChange} className="mt-1 h-5 w-5 text-[#8A1C14] rounded focus:ring-[#8A1C14]" required />
@@ -466,7 +504,6 @@ export default function RegistrationForm() {
                     </label>
                   )}
 
-                  {/* 模組三：自駕規定 (動態顯示：自駕團) */}
                   {isDrivingTour && (
                     <label className="flex items-start">
                       <input type="checkbox" name="agreedDriving" checked={formData.agreedDriving} onChange={handleChange} className="mt-1 h-5 w-5 text-[#8A1C14] rounded focus:ring-[#8A1C14]" required />
@@ -476,11 +513,9 @@ export default function RegistrationForm() {
                       </span>
                     </label>
                   )}
-
                 </div>
               </section>
 
-              {/* === 送出按鈕 === */}
               <div className="pt-4 border-t border-gray-200">
                 <button
                   type="submit"
