@@ -1,24 +1,22 @@
-"use client";
-
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#FDFBF7] font-sans flex flex-col">
       {/* 頂部導覽列 (藏紅色頂邊飾條) */}
       <header className="bg-white shadow-sm border-t-8 border-[#8A1C14]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            {/* 簡易版太陽與小屋 Logo 意象 */}
-            <div className="relative flex items-center justify-center w-10 h-10">
-              <div className="absolute inset-0 bg-[#F59E0B] rounded-full opacity-20 animate-pulse"></div>
-              <svg className="w-8 h-8 text-[#8A1C14]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-            </div>
-            <span className="text-2xl font-extrabold tracking-wider text-gray-900">
-              陽光小屋旅遊
-            </span>
+            {/* 匯入您的官方 Logo */}
+            <Image 
+              src="/logo.png" 
+              alt="陽光小屋旅遊" 
+              width={200} 
+              height={200} 
+              className="w-auto h-16 object-contain"
+              priority
+            />
           </div>
         </div>
       </header>
@@ -35,8 +33,7 @@ export default function Home() {
         {/* 三大系統入口卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           
-          {/* 工具 A：報名系統 */}
-          <Link href="/registration" className="group block">
+          <Link href="/registration" className="group block h-full">
             <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border-b-4 border-transparent hover:border-[#F59E0B] h-full flex flex-col">
               <div className="bg-[#8A1C14] p-6 text-center group-hover:bg-[#9c221a] transition-colors">
                 <svg className="w-12 h-12 text-white mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -50,8 +47,7 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* 工具 B：查詢系統 */}
-          <Link href="/query" className="group block">
+          <Link href="/query" className="group block h-full">
             <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border-b-4 border-transparent hover:border-[#F59E0B] h-full flex flex-col">
               <div className="bg-[#5c6b73] p-6 text-center group-hover:bg-[#4a565d] transition-colors">
                 <svg className="w-12 h-12 text-white mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -65,25 +61,24 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* 工具 C：上傳系統 */}
-          <Link href="/upload" className="group block">
-            <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border-b-4 border-transparent hover:border-[#F59E0B] h-full flex flex-col">
-              <div className="bg-[#d4a373] p-6 text-center group-hover:bg-[#c29161] transition-colors">
+          <div className="group block h-full opacity-60 cursor-not-allowed">
+            <div className="bg-gray-100 rounded-xl shadow-sm overflow-hidden border-b-4 border-transparent h-full flex flex-col">
+              <div className="bg-gray-400 p-6 text-center">
                 <svg className="w-12 h-12 text-white mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
               </div>
               <div className="p-6 flex-grow flex flex-col justify-center text-center">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">上傳證件系統</h2>
-                <p className="text-gray-500">報名成功後，於此處上傳護照、台胞證等入藏必備證件圖檔。</p>
+                <h2 className="text-2xl font-bold text-gray-500 mb-2">上傳證件系統</h2>
+                <p className="text-gray-500">敬請期待，系統建置中。</p>
               </div>
             </div>
-          </Link>
+          </div>
 
         </div>
       </main>
 
-      {/* 頁尾版權與聯絡資訊 (依照公司名片圖片置入) */}
+      {/* 頁尾版權與聯絡資訊 */}
       <footer className="bg-[#f0ede6] text-gray-600 py-10 mt-auto border-t border-[#e2ddd3]">
         <div className="max-w-7xl mx-auto px-4 text-center sm:text-sm leading-relaxed">
           <p className="font-semibold text-gray-800 mb-2 text-lg">陽光小屋旅遊</p>
