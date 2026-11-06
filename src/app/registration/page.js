@@ -99,7 +99,6 @@ export default function RegistrationForm() {
     }));
   };
 
-  // 一鍵複製純數字帳號（相容所有手機與瀏覽器環境）
   const handleCopyAccount = async () => {
     const rawNumber = "20480100005240";
     if (navigator.clipboard && window.isSecureContext) {
@@ -112,7 +111,6 @@ export default function RegistrationForm() {
         console.warn("Clipboard API 失敗，切換備用方案", err);
       }
     }
-    // 降級備用複製機制
     const textArea = document.createElement("textarea");
     textArea.value = rawNumber;
     textArea.style.position = "fixed";
@@ -130,11 +128,9 @@ export default function RegistrationForm() {
     document.body.removeChild(textArea);
   };
 
-  // 點擊送出時執行詳細防呆校驗
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 1. 行程檢核
     if (!formData.series || !formData.tourName || !formData.schedule) {
       alert("請確認已選擇【行程系列】、【行程名稱】與【出團檔期】！");
       return;
@@ -143,20 +139,14 @@ export default function RegistrationForm() {
       alert("請選擇【行程天數】！");
       return;
     }
-
-    // 2. 基本資料檢核
     if (!formData.name || !formData.nationality || !formData.gender || !formData.birthDate || !formData.idNumber || !formData.phone || !formData.email) {
       alert("請完整填寫【旅客基本資料】所有必填欄位！");
       return;
     }
-
-    // 3. 需求檢核
     if (!formData.diet || !formData.roomType) {
       alert("請完整選擇【飲食習慣】與【住宿安排】！");
       return;
     }
-
-    // 4. 自駕專屬檢核
     if (isDrivingTour) {
       if (!formData.driveGroup || !formData.driveRole) {
         alert("自駕行程請完整選擇【自駕分組】與【車輛/角色配置】！");
@@ -167,20 +157,14 @@ export default function RegistrationForm() {
         return;
       }
     }
-
-    // 5. 支付方式檢核
     if (!formData.paymentMethod) {
       alert("請選擇支付方式（銀行匯款 或 信用卡刷卡）！");
       return;
     }
-
-    // 6. 統編檢核
     if (formData.needTaxId && (!formData.companyTitle || !formData.taxId)) {
       alert("勾選開立統編者，請填寫公司抬頭與統一編號！");
       return;
     }
-
-    // 7. 特殊條款檢核
     if (isTibetTour && !formData.agreedTibet) {
       alert("您所報名之行程涉及西藏入藏手續，請閱讀並勾選【西藏入藏專屬特殊規範】！");
       return;
@@ -192,13 +176,28 @@ export default function RegistrationForm() {
 
     setIsSubmitting(true);
 
+    // 1. 自動取得流水號：先抓取 Google 試算表目前資料總筆數並 +1
+    let nextSerial = 1;
+    try {
+      const countRes = await fetch('https://sheetdb.io/api/v1/6xxfvdvjl1t6l/count?sheet=Registration');
+      const countData = await countRes.json();
+      if (countData && typeof countData.rows === 'number') {
+        nextSerial = countData.rows + 1;
+      }
+    } catch (countError) {
+      console.warn("無法取得流水號筆數，使用預設值 1", countError);
+    }
+
+    // 2. 產生防偽訂單編號 (SY...)
     const dateStr = new Date().toISOString().slice(2,10).replace(/-/g, '');
     const randomStr = Math.random().toString(36).substring(2, 5).toUpperCase();
     const newOrderNumber = `SY${dateStr}-${randomStr}`;
     setOrderNumber(newOrderNumber);
 
+    // 3. 準備寫入資料 (第一欄寫入剛剛算出的「編號」)
     const payload = {
       data: [{
+        "編號": nextSerial,
         "訂單編號": newOrderNumber,
         "報名時間": new Date().toLocaleString('zh-TW', { hour12: false }),
         "訂單狀態": "等候支付訂金",
@@ -256,13 +255,11 @@ export default function RegistrationForm() {
     }
   };
 
-  // ==================== 成功送出：專屬付款與對帳教學頁面 ====================
+  // 成功送出畫面
   if (submitSuccess) {
     return (
       <div className="min-h-screen bg-[#121110] text-[#EDE8DF] py-12 px-4 sm:px-6 lg:px-8 font-sans flex items-center justify-center">
         <div className="max-w-2xl w-full bg-[#1A1816] rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
-          
-          {/* 成功標頭 */}
           <div className="bg-gradient-to-r from-[#8A1C14] to-[#5a120c] p-8 text-center text-white">
             <div className="w-16 h-16 bg-white/20 backdrop-blur rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-9 h-9 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -274,8 +271,6 @@ export default function RegistrationForm() {
           </div>
 
           <div className="p-6 sm:p-8 space-y-6">
-            
-            {/* 訂單摘要卡片 */}
             <div className="bg-[#24211D] rounded-xl p-5 border border-white/5 space-y-2 text-sm">
               <div className="flex justify-between items-center border-b border-white/10 pb-3">
                 <span className="text-stone-400">專屬訂單編號</span>
@@ -299,7 +294,6 @@ export default function RegistrationForm() {
               </div>
             </div>
 
-            {/* 匯款流程詳細說明卡片 */}
             {formData.paymentMethod === "匯款" ? (
               <div className="bg-[#231F1C] rounded-xl p-6 border-2 border-[#8A1C14]/60 space-y-5">
                 <div className="flex items-center gap-2 text-[#F59E0B] font-bold text-lg border-b border-white/10 pb-3">
@@ -314,7 +308,6 @@ export default function RegistrationForm() {
                   <div className="flex justify-between items-center pt-1"><span className="text-stone-400">帳號（附連字號）：</span><span className="font-mono text-white">2048-01-0000524-0</span></div>
                 </div>
 
-                {/* 一鍵複製純數字帳號區塊 */}
                 <div className="bg-[#121110] p-4 rounded-lg border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
                   <div>
                     <span className="text-xs text-stone-400 block">網銀轉帳專用（純數字無連字號）：</span>
@@ -341,7 +334,6 @@ export default function RegistrationForm() {
                   </button>
                 </div>
 
-                {/* 對帳教學指引 */}
                 <div className="bg-amber-950/30 border border-amber-600/40 rounded-lg p-4 space-y-2 text-xs sm:text-sm text-amber-200/90 leading-relaxed">
                   <p className="font-bold text-[#F59E0B] text-sm flex items-center gap-1.5">
                     <span>💡</span> 匯款後對帳操作教學：
@@ -355,7 +347,6 @@ export default function RegistrationForm() {
                 </div>
               </div>
             ) : (
-              /* 刷卡流程說明卡片 */
               <div className="bg-[#231F1C] rounded-xl p-6 border-2 border-blue-500/40 space-y-4">
                 <div className="flex items-center gap-2 text-blue-400 font-bold text-lg border-b border-white/10 pb-3">
                   <span>💳</span>
@@ -372,7 +363,6 @@ export default function RegistrationForm() {
               </div>
             )}
 
-            {/* 操作按鈕群 */}
             <div className="flex flex-col sm:flex-row gap-4 pt-2">
               <Link
                 href="/query"
@@ -388,14 +378,13 @@ export default function RegistrationForm() {
                 返回首頁
               </Link>
             </div>
-
           </div>
         </div>
       </div>
     );
   }
 
-  // ==================== 入口關卡：模組一 一般旅遊契約 (6 點完整條約) ====================
+  // 入口關卡
   if (!isGatewayPassed) {
     return (
       <div className="min-h-screen bg-[#FDFBF7] py-10 px-4 sm:px-6 lg:px-8 font-sans flex items-center justify-center">
@@ -482,7 +471,7 @@ export default function RegistrationForm() {
     );
   }
 
-  // ==================== 報名表主體 ====================
+  // 表單主體
   return (
     <div className="min-h-screen bg-[#FDFBF7] py-8 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-4xl mx-auto">
@@ -499,7 +488,6 @@ export default function RegistrationForm() {
 
             <form onSubmit={handleSubmit} className="space-y-10">
               
-              {/* 區塊一：行程選擇 */}
               <section className="bg-orange-50/50 p-6 rounded-lg border border-orange-100">
                 <h2 className="text-xl font-semibold text-[#8A1C14] mb-4 flex items-center gap-2">
                   <span className="bg-[#8A1C14] text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-sm">1</span> 選擇行程與出發檔期
@@ -542,7 +530,6 @@ export default function RegistrationForm() {
                 </div>
               </section>
 
-              {/* 區塊二：旅客基本資料 */}
               <section>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4 border-b pb-2">二、旅客基本資料</h2>
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -597,7 +584,6 @@ export default function RegistrationForm() {
                 </div>
               </section>
 
-              {/* 區塊三：行程需求 */}
               <section>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4 border-b pb-2">三、行程需求與偏好</h2>
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -632,7 +618,6 @@ export default function RegistrationForm() {
                 </div>
               </section>
 
-              {/* 區塊四：自駕配置 (條件呈現) */}
               {isDrivingTour && (
                 <section className="bg-gray-100 p-6 rounded-lg border border-gray-200">
                   <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -686,7 +671,6 @@ export default function RegistrationForm() {
                 </section>
               )}
 
-              {/* 區塊五：結帳與發票 (修復原生 Radio 隱藏問題) */}
               <section>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4 border-b pb-2">四、結帳與發票資訊</h2>
                 <div className="bg-[#fcf8f2] p-4 rounded mb-6 text-center border border-[#f5e6d3]">
@@ -742,12 +726,10 @@ export default function RegistrationForm() {
                 </div>
               </section>
 
-              {/* 區塊六：特殊行程條款確認 */}
               {(isTibetTour || isDrivingTour) && (
                 <section className="space-y-8">
                   <h2 className="text-xl font-semibold text-gray-900 border-b pb-2">五、特殊行程條款確認</h2>
 
-                  {/* 西藏規範 */}
                   {isTibetTour && (
                     <div className="bg-red-50/40 p-6 rounded-lg border border-red-200">
                       <div className="flex items-center justify-between mb-4 border-b border-red-200 pb-3">
@@ -794,7 +776,6 @@ export default function RegistrationForm() {
                     </div>
                   )}
 
-                  {/* 自駕切結 */}
                   {isDrivingTour && (
                     <div className="bg-amber-50/50 p-6 rounded-lg border border-amber-200">
                       <div className="flex items-center justify-between mb-4 border-b border-amber-200 pb-3">
@@ -838,7 +819,6 @@ export default function RegistrationForm() {
                 </section>
               )}
 
-              {/* 送出報名按鈕 */}
               <div className="pt-4 border-t border-gray-200">
                 <button
                   type="submit"
