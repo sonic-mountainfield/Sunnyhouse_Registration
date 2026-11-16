@@ -2,6 +2,13 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import emailjs from '@emailjs/browser';
+
+// EmailJS 設定值常數
+const EMAILJS_SERVICE_ID = "service_wu8dua2";
+const EMAILJS_PUBLIC_KEY = "gAivgFufM8L44AAow";
+const TEMPLATE_B_CREDITCARD = "template_dgejm0a";
+const TEMPLATE_C_CONFIRM = "template_cb6oean";
 
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -12,6 +19,12 @@ export default function AdminDashboard() {
   // 篩選與狀態管理
   const [selectedTour, setSelectedTour] = useState("全部行程");
   const [updatingId, setUpdatingId] = useState(null);
+
+  // 刷卡彈跳視窗狀態管理
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [selectedOrderForCard, setSelectedOrderForCard] = useState(null);
+  const [cardLink, setCardLink] = useState("");
+  const [cardExpire, setCardExpire] = useState("");
 
   // 登入驗證
   const handleLogin = (e) => {
@@ -50,22 +63,23 @@ export default function AdminDashboard() {
     return orders.filter(o => o["行程名稱"] === selectedTour);
   }, [orders, selectedTour]);
 
-  // 更新訂單狀態寫回 SheetDB
+  // 更新單一欄位寫回 SheetDB 的通用函式
+  const updateSheetDB = async (orderId, updateData) => {
+    const updateUrl = `https://sheetdb.io/api/v1/6xxfvdvjl1t6l/訂單編號/${orderId}?sheet=Registration`;
+    const response = await fetch(updateUrl, {
+      method: 'PATCH',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: updateData })
+    });
+    return await response.json();
+  };
+
+  // 處理一般下拉選單狀態變更
   const handleStatusChange = async (orderId, newStatus) => {
     setUpdatingId(orderId);
     try {
-      const payload = { data: { "訂單狀態": newStatus } };
-      const updateUrl = `https://sheetdb.io/api/v1/6xxfvdvjl1t6l/訂單編號/${orderId}?sheet=Registration`;
-      
-      const response = await fetch(updateUrl, {
-        method: 'PATCH',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const result = await response.json();
-      
+      const result = await updateSheetDB(orderId, { "訂單狀態": newStatus });
       if (result.updated) {
-        // 更新本地端資料顯示
         setOrders(prev => prev.map(o => o["訂單編號"] === orderId ? { ...o, "訂單狀態": newStatus } : o));
       }
     } catch (error) {
@@ -76,11 +90,101 @@ export default function AdminDashboard() {
     }
   };
 
-  // 模擬發送確認信件動作 (UI 先行準備好)
-  const handleSendEmail = (order) => {
-    if (confirm(`確定要發送報名確認信給 ${order["中文姓名"]} (${order["Email"]}) 嗎？\n\n(註：此為 UI 預留按鈕，實際自動寄信邏輯將於後續整合)`)) {
-      // 模擬發送成功後，自動將狀態改為 "已發送確認信"
-      handleStatusChange(order["訂單編號"], "已發送確認信");
+  // 處理發送正式確認信 (Template C)
+  const handleSendConfirmEmail = async (order) => {
+    if (!confirm(`確定要發送「正式報名確認信」給 ${order["中文姓名"]} (${order["Email"]}) 嗎？`)) return;
+    
+    setUpdatingId(order["訂單編號"]);
+    try {
+      // 1. 寄出 EmailJS 信件
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        TEMPLATE_C_CONFIRM,
+        {
+          to_name: order["中文姓名"],
+          to_email: order["Email"],
+          order_id: order["訂單編號"],
+          tour_name: order["行程名稱"],
+          schedule_date: order["出團檔期"],
+          payment_method: order["支付方式"],
+          query_url: window.location.origin + "/query" // 自動取得當前網址
+        },
+        { publicKey: EMAILJS_PUBLIC_KEY }
+      );
+
+      // 2. 信件寄出成功後，更新 SheetDB 狀態
+      const newStatus = "已發送確認信";
+      const result = await updateSheetDB(order["訂單編號"], { "訂單狀態": newStatus });
+      
+      if (result.updated) {
+        setOrders(prev => prev.map(o => o["訂單編號"] === order["訂單編號"] ? { ...o, "訂單狀態": newStatus } : o));
+        alert("報名確認信已成功寄出！狀態已更新。");
+      }
+    } catch (error) {
+      console.error("發送確認信失敗:", error);
+      alert("發送信件失敗，請稍後再試。");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  // 打開綁定刷卡連結的 Modal
+  const openCardModal = (order) => {
+    setSelectedOrderForCard(order);
+    setCardLink(order["刷卡連結"] || "");
+    setCardExpire(order["刷卡有效期限"] || "");
+    setShowCardModal(true);
+  };
+
+  // 儲存刷卡連結並寄信 (Template B)
+  const handleSaveCardLink = async (e) => {
+    e.preventDefault();
+    if (!cardLink || !cardExpire) {
+      alert("請完整輸入刷卡連結與有效期限");
+      return;
+    }
+
+    const orderId = selectedOrderForCard["訂單編號"];
+    setUpdatingId(orderId);
+    setShowCardModal(false);
+
+    try {
+      const newStatus = "已發送刷卡連結";
+      // 1. 更新 SheetDB (寫入連結、期限、狀態)
+      const result = await updateSheetDB(orderId, {
+        "刷卡連結": cardLink,
+        "刷卡有效期限": cardExpire,
+        "訂單狀態": newStatus
+      });
+
+      if (result.updated) {
+        // 2. 寄出 Template B 刷卡通知信
+        await emailjs.send(
+          EMAILJS_SERVICE_ID,
+          TEMPLATE_B_CREDITCARD,
+          {
+            to_name: selectedOrderForCard["中文姓名"],
+            to_email: selectedOrderForCard["Email"],
+            order_id: orderId,
+            tour_name: selectedOrderForCard["行程名稱"],
+            schedule_date: selectedOrderForCard["出團檔期"],
+            payment_link: cardLink,
+            expire_date: cardExpire,
+            query_url: window.location.origin + "/query"
+          },
+          { publicKey: EMAILJS_PUBLIC_KEY }
+        );
+
+        // 3. 更新本地 UI
+        setOrders(prev => prev.map(o => o["訂單編號"] === orderId ? { ...o, "訂單狀態": newStatus, "刷卡連結": cardLink, "刷卡有效期限": cardExpire } : o));
+        alert("刷卡連結已儲存，並成功寄出刷卡通知信！");
+      }
+    } catch (error) {
+      console.error("處理刷卡連結失敗:", error);
+      alert("處理失敗，請稍後再試。");
+    } finally {
+      setUpdatingId(null);
+      setSelectedOrderForCard(null);
     }
   };
 
@@ -107,9 +211,9 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#f5f7f9] p-4 sm:p-6 font-sans">
-      <div className="max-w-[1400px] mx-auto">
+      <div className="max-w-[1400px] mx-auto relative">
         
-        {/* 頂部導航列 (模擬參考圖設計) */}
+        {/* 頂部導航列 */}
         <div className="flex justify-between items-center mb-6 border-b border-gray-300 pb-2">
           <div className="flex gap-2">
             <div className="bg-white text-gray-600 px-6 py-2 rounded-t-lg font-bold border border-b-0 border-gray-300">隊員報名查詢</div>
@@ -159,15 +263,16 @@ export default function AdminDashboard() {
                 <th className="p-4 font-semibold w-32">姓名 / 證號</th>
                 <th className="p-4 font-semibold">行程與梯次</th>
                 <th className="p-4 font-semibold w-56">聯絡電話 / Email</th>
-                <th className="p-4 font-semibold w-24">後五碼</th>
+                <th className="p-4 font-semibold w-32">付款方式與核對</th>
                 <th className="p-4 font-semibold w-48">狀態審查</th>
-                <th className="p-4 font-semibold w-32 text-center">通知操作</th>
+                <th className="p-4 font-semibold w-36 text-center">通知操作</th>
               </tr>
             </thead>
             <tbody>
               {filteredOrders.map((order, idx) => {
                 const isCancelled = order["訂單狀態"] === "已取消";
                 const isProcessing = updatingId === order["訂單編號"];
+                const isCreditCard = order["支付方式"] === "刷卡";
 
                 return (
                   <tr key={idx} className={`border-b border-gray-100 hover:bg-blue-50 transition-colors ${isCancelled ? 'opacity-70 bg-red-50 hover:bg-red-50' : ''}`}>
@@ -192,7 +297,6 @@ export default function AdminDashboard() {
                     <td className="p-4 align-top">
                       <div className={`font-medium mb-1 ${isCancelled ? 'text-red-700' : 'text-gray-800'}`}>{order["行程名稱"]}</div>
                       <div className="text-xs text-gray-500">{order["出團檔期"]}</div>
-                      {order["支付方式"] === "刷卡" && <span className="inline-block mt-1 bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded">💳 刷卡單</span>}
                     </td>
 
                     {/* 聯絡電話 / Email */}
@@ -201,14 +305,32 @@ export default function AdminDashboard() {
                       <div className="text-xs">{order["Email"]}</div>
                     </td>
 
-                    {/* 後五碼 */}
+                    {/* 付款方式與核對 */}
                     <td className="p-4 align-top">
-                      <span className={`font-mono font-bold ${order["客戶匯款後五碼"] ? 'text-green-600' : 'text-gray-300'}`}>
-                        {order["客戶匯款後五碼"] || "無"}
-                      </span>
+                      {isCreditCard ? (
+                        <div className="space-y-2">
+                          <span className="inline-block bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded font-bold">💳 刷卡單</span>
+                          {order["刷卡連結"] ? (
+                             <button onClick={() => openCardModal(order)} className="block text-[11px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded border border-gray-300 w-full text-left truncate">
+                               已綁定 (點擊修改)
+                             </button>
+                          ) : (
+                            <button onClick={() => openCardModal(order)} className="block text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded shadow-sm w-full text-center font-bold">
+                              ＋ 生成刷卡連結
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <span className="inline-block bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded font-bold">🏦 銀行匯款</span>
+                          <div className={`font-mono text-sm font-bold ${order["客戶匯款後五碼"] ? 'text-green-600' : 'text-gray-400'}`}>
+                            {order["客戶匯款後五碼"] ? `後五碼: ${order["客戶匯款後五碼"]}` : "未回填"}
+                          </div>
+                        </div>
+                      )}
                     </td>
 
-                    {/* 狀態審查 (下拉選單直接改狀態) */}
+                    {/* 狀態審查 */}
                     <td className="p-4 align-top">
                       <select 
                         value={order["訂單狀態"] || ""}
@@ -231,7 +353,7 @@ export default function AdminDashboard() {
                       </select>
                     </td>
 
-                    {/* 通知操作 */}
+                    {/* 通知操作 (發送 Template C 確認信) */}
                     <td className="p-4 align-top text-center">
                       {isCancelled ? (
                         <div className="inline-flex items-center justify-center border border-gray-200 bg-gray-100 text-gray-400 px-3 py-1.5 rounded text-xs">
@@ -239,13 +361,15 @@ export default function AdminDashboard() {
                         </div>
                       ) : (
                         <button 
-                          onClick={() => handleSendEmail(order)}
-                          className={`inline-flex items-center justify-center border px-3 py-1.5 rounded text-xs transition-colors
+                          onClick={() => handleSendConfirmEmail(order)}
+                          disabled={isProcessing}
+                          className={`inline-flex items-center justify-center border px-3 py-1.5 rounded text-xs font-bold transition-colors w-full shadow-sm
+                            ${isProcessing ? 'opacity-50 cursor-wait' : ''}
                             ${order["訂單狀態"] === "已發送確認信" 
-                              ? 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100' 
-                              : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+                              ? 'border-green-300 bg-green-50 text-green-700 hover:bg-green-100' 
+                              : 'border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-400'}`}
                         >
-                          {order["訂單狀態"] === "已發送確認信" ? '✓ 已寄出 (可重發)' : '✉ 發送確認信'}
+                          {order["訂單狀態"] === "已發送確認信" ? '✓ 已發送 (可重寄)' : '✉ 發送確認信'}
                         </button>
                       )}
                     </td>
@@ -259,6 +383,54 @@ export default function AdminDashboard() {
             </tbody>
           </table>
         </div>
+        
+        {/* Modal: 輸入刷卡連結與效期 */}
+        {showCardModal && selectedOrderForCard && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-gray-200">
+              <div className="bg-blue-600 px-6 py-4 flex justify-between items-center text-white">
+                <h3 className="font-bold text-lg">💳 綁定專屬刷卡單並寄送通知</h3>
+                <button onClick={() => setShowCardModal(false)} className="text-white/80 hover:text-white font-bold text-xl">×</button>
+              </div>
+              
+              <form onSubmit={handleSaveCardLink} className="p-6">
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800">
+                  即將為客戶 <strong>{selectedOrderForCard["中文姓名"]}</strong> 發送刷卡通知，請輸入由金流後台生成的加密結帳連結。
+                </div>
+                
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">線上刷卡付款連結 URL *</label>
+                    <input 
+                      type="url" required
+                      value={cardLink}
+                      onChange={(e) => setCardLink(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full border border-gray-300 p-2.5 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">刷卡有效期限 *</label>
+                    <input 
+                      type="text" required
+                      value={cardExpire}
+                      onChange={(e) => setCardExpire(e.target.value)}
+                      placeholder="例：2026/12/31 23:59 前"
+                      className="w-full border border-gray-300 p-2.5 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-8 flex justify-end gap-3 border-t pt-4">
+                  <button type="button" onClick={() => setShowCardModal(false)} className="px-4 py-2 border border-gray-300 rounded text-gray-600 hover:bg-gray-50 font-bold">取消</button>
+                  <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded font-bold shadow hover:bg-blue-700 flex items-center gap-2">
+                    ✉ 儲存並寄發通知信
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
