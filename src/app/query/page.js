@@ -425,15 +425,22 @@ export default function QueryForm() {
                       ✓ 已回填匯款後五碼：<strong className="font-mono text-base">{selectedOrder["客戶匯款後五碼"]}</strong>。財務專員將於核對後為您確認訂金。
                     </div>
                   ) : selectedOrder["支付方式"] === "刷卡" && selectedOrder["刷卡連結"] ? (
-                    <div className="space-y-3">
-                      <p className="text-sm text-gray-600">專員已生成專屬刷卡付款連結，請點擊下方按鈕前往結帳：</p>
+                    <div className="space-y-4">
+                      <div className="text-sm text-gray-600">
+                        <p className="mb-2">專員已生成專屬刷卡付款連結，請點擊下方按鈕前往結帳：</p>
+                        {selectedOrder["刷卡有效期限"] && (
+                           <p className="text-red-600 font-bold bg-red-50 inline-block px-3 py-1 rounded">
+                             ⏳ 敬請於 {selectedOrder["刷卡有效期限"]} 前完成付款
+                           </p>
+                        )}
+                      </div>
                       <a 
                         href={selectedOrder["刷卡連結"]} 
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        className="inline-block bg-[#F59E0B] hover:bg-[#d97706] text-black px-6 py-2.5 rounded-lg font-bold text-sm transition-colors shadow-sm"
+                        className="inline-block bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-8 py-3 rounded-lg font-bold text-sm transition-colors shadow-md"
                       >
-                        前往信用卡線上付款 →
+                        💳 前往信用卡線上付款 →
                       </a>
                     </div>
                   ) : (
