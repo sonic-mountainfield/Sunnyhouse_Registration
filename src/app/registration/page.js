@@ -2,6 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import emailjs from '@emailjs/browser';
+
+// EmailJS 設定值常數
+const EMAILJS_SERVICE_ID = "service_wu8dua2";
+const EMAILJS_PUBLIC_KEY = "gAivgFufM8L44AAow";
+const TEMPLATE_A_REMITTANCE = "template_76v5j6c";
 
 // 完整旅遊行程與檔期資料庫
 const tourData = [
@@ -223,6 +229,7 @@ export default function RegistrationForm() {
         "支付方式": formData.paymentMethod,
         "客戶匯款後五碼": "",
         "刷卡連結": "",
+        "刷卡有效期限": "",
         "應付訂金": 15000,
         "是否開立統編": formData.needTaxId ? "是" : "否",
         "公司抬頭": formData.companyTitle || "",
@@ -241,6 +248,27 @@ export default function RegistrationForm() {
       const result = await response.json();
 
       if (response.ok || result.created >= 1 || (result && !result.error)) {
+        // 4. 若支付方式為「匯款」，自動透過 EmailJS 寄出第一封通知信 (Template A)
+        if (formData.paymentMethod === "匯款") {
+          try {
+            await emailjs.send(
+              EMAILJS_SERVICE_ID,
+              TEMPLATE_A_REMITTANCE,
+              {
+                to_name: formData.name,
+                to_email: formData.email,
+                order_id: newOrderNumber,
+                tour_name: formData.tourName,
+                schedule_date: formData.schedule,
+                query_url: window.location.origin + "/query"
+              },
+              { publicKey: EMAILJS_PUBLIC_KEY }
+            );
+          } catch (emailError) {
+            console.error("匯款通知信發送失敗:", emailError);
+          }
+        }
+
         setSubmitSuccess(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
