@@ -12,13 +12,93 @@ const TEMPLATE_C_CONFIRM = "template_cb6oean";
 const TEMPLATE_D_BALANCE_NOTICE = "template_yscszni";
 const TEMPLATE_E_BALANCE_SETTLED = "template_zmu9rni";
 
+// 完整團號與出發日期主檔（供電子看板計算 D-30 / D-25 / D-20 倒數與剩餘名額）
+const MASTER_SCHEDULES = [
+  // 西藏系列（需辦理入藏函，嚴格執行 D-30 / D-25 / D-20 控管）
+  { code: "TE1", series: "西藏系列", tourName: "TE｜林芝桃花・頂級西藏青藏鐵路12日", dateRange: "03/19-03/30", startDate: "2026-03-19", defaultCapacity: 16, isTibet: true },
+  { code: "TE2", series: "西藏系列", tourName: "TE｜林芝桃花・頂級西藏青藏鐵路12日", dateRange: "04/02-04/13", startDate: "2026-04-02", defaultCapacity: 16, isTibet: true },
+  { code: "TE3", series: "西藏系列", tourName: "TE｜林芝桃花・頂級西藏青藏鐵路12日", dateRange: "10/22-11/02", startDate: "2026-10-22", defaultCapacity: 16, isTibet: true },
+  { code: "TE4", series: "西藏系列", tourName: "TE｜林芝桃花・頂級西藏青藏鐵路12日", dateRange: "11/05-11/16", startDate: "2026-11-05", defaultCapacity: 16, isTibet: true },
+
+  { code: "TB1", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "04/02-04/13", startDate: "2026-04-02", defaultCapacity: 16, isTibet: true },
+  { code: "TB2", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "04/23-05/04", startDate: "2026-04-23", defaultCapacity: 16, isTibet: true },
+  { code: "TB3", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "06/04-06/15", startDate: "2026-06-04", defaultCapacity: 16, isTibet: true },
+  { code: "TB4", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "07/09-07/20", startDate: "2026-07-09", defaultCapacity: 16, isTibet: true },
+  { code: "TB5", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "08/13-08/24", startDate: "2026-08-13", defaultCapacity: 16, isTibet: true },
+  { code: "TB6", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "09/10-09/21", startDate: "2026-09-10", defaultCapacity: 16, isTibet: true },
+  { code: "TB7", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "09/24-10/05", startDate: "2026-09-24", defaultCapacity: 16, isTibet: true },
+  { code: "TB8", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "10/08-10/19", startDate: "2026-10-08", defaultCapacity: 16, isTibet: true },
+  { code: "TB9", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "10/22-11/02", startDate: "2026-10-22", defaultCapacity: 16, isTibet: true },
+
+  { code: "TK1", series: "西藏系列", tourName: "TK｜阿里岡仁波齊轉山之旅", dateRange: "06/04-06/15", startDate: "2026-06-04", defaultCapacity: 16, isTibet: true },
+  { code: "TK2", series: "西藏系列", tourName: "TK｜阿里岡仁波齊轉山之旅", dateRange: "09/10-09/21", startDate: "2026-09-10", defaultCapacity: 16, isTibet: true },
+
+  // 新疆系列
+  { code: "XS1", series: "新疆系列", tourName: "XS｜南疆・帕米爾高原・盤龍古道", dateRange: "04/02-04/11", startDate: "2026-04-02", defaultCapacity: 16, isTibet: false },
+  { code: "XS2", series: "新疆系列", tourName: "XS｜南疆・帕米爾高原・盤龍古道", dateRange: "10/22-10/31", startDate: "2026-10-22", defaultCapacity: 16, isTibet: false },
+
+  // 中國自駕系列（TC 含西藏段亦適用入藏規則）
+  { code: "TC318-1", series: "中國自駕系列", tourName: "TC318｜此生必駕318・重機/四驅車自駕", dateRange: "04/14-04/26", startDate: "2026-04-14", defaultCapacity: 12, isTibet: true },
+  { code: "TC318-2", series: "中國自駕系列", tourName: "TC318｜此生必駕318・重機/四驅車自駕", dateRange: "10/13-10/25", startDate: "2026-10-13", defaultCapacity: 12, isTibet: true },
+  { code: "TC1", series: "中國自駕系列", tourName: "TC｜聖母峰・重機/四驅車自駕", dateRange: "04/23-05/02", startDate: "2026-04-23", defaultCapacity: 12, isTibet: true },
+  { code: "TC2", series: "中國自駕系列", tourName: "TC｜聖母峰・重機/四驅車自駕", dateRange: "10/22-10/31", startDate: "2026-10-22", defaultCapacity: 12, isTibet: true },
+  { code: "XSD1", series: "中國自駕系列", tourName: "XSD｜帕米爾高原・盤龍古道 重機/四驅車自駕", dateRange: "04/02-04/11", startDate: "2026-04-02", defaultCapacity: 12, isTibet: false },
+  { code: "XSD2", series: "中國自駕系列", tourName: "XSD｜帕米爾高原・盤龍古道 重機/四驅車自駕", dateRange: "10/22-10/31", startDate: "2026-10-22", defaultCapacity: 12, isTibet: false },
+
+  // 埃及系列
+  { code: "EG1", series: "埃及系列", tourName: "EG｜埃及撒哈拉之旅", dateRange: "2026/12/04-12/15", startDate: "2026-12-04", defaultCapacity: 16, isTibet: false },
+  { code: "EG2", series: "埃及系列", tourName: "EG｜埃及撒哈拉之旅", dateRange: "2027/01/22-02/02", startDate: "2027-01-22", defaultCapacity: 16, isTibet: false },
+  { code: "EG3", series: "埃及系列", tourName: "EG｜埃及撒哈拉之旅", dateRange: "2027/02/26-03/09", startDate: "2027-02-26", defaultCapacity: 16, isTibet: false },
+  { code: "EG4", series: "埃及系列", tourName: "EG｜埃及撒哈拉之旅", dateRange: "2027/04/02-04/13", startDate: "2027-04-02", defaultCapacity: 16, isTibet: false },
+  { code: "EG5", series: "埃及系列", tourName: "EG｜埃及撒哈拉之旅", dateRange: "2027/04/30-05/11", startDate: "2027-04-30", defaultCapacity: 16, isTibet: false }
+];
+
+// 安全解析台灣格式報名時間字串（如 "2026/11/17 15:20:00" 或 "2026/3/5 下午2:10:00"）
+const parseTaiwanDate = (rawStr) => {
+  if (!rawStr) return null;
+  const str = rawStr.toString().trim();
+  const match = str.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (match) {
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1;
+    const day = parseInt(match[3], 10);
+    return new Date(year, month, day);
+  }
+  const fallback = new Date(str);
+  return isNaN(fallback.getTime()) ? null : fallback;
+};
+
+// 取得該日期所屬週一日期字串 (YYYY/MM/DD)
+const getMondayKey = (dateObj) => {
+  const d = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(d.setDate(diff));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const fmt = (dt) => `${dt.getFullYear()}/${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getDate()).padStart(2, '0')}`;
+  return {
+    key: fmt(monday),
+    label: `${fmt(monday)} ~ ${String(sunday.getMonth() + 1).padStart(2, '0')}/${String(sunday.getDate()).padStart(2, '0')}`
+  };
+};
+
+// 計算日期加減天數並格式化為 MM/DD
+const formatOffsetDate = (startDateStr, offsetDays) => {
+  if (!startDateStr) return "-";
+  const [y, m, d] = startDateStr.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + offsetDays);
+  return `${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getDate()).padStart(2, '0')}`;
+};
+
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 階段頁籤切換：'deposit' (訂金審核) | 'balance' (尾款請款與結清)
+  // 階段頁籤切換：'deposit' (訂金審核) | 'balance' (尾款請款) | 'board' (業務收客電子看板)
   const [activeTab, setActiveTab] = useState("deposit");
 
   // 篩選與狀態管理
@@ -39,6 +119,25 @@ export default function AdminDashboard() {
   const [balanceCardLink, setBalanceCardLink] = useState("");
   const [balanceCardExpire, setBalanceCardExpire] = useState("");
 
+  // 【電子看板】專用狀態
+  const [reportGranularity, setReportGranularity] = useState("monthly"); // 'monthly' | 'weekly'
+  const [boardSeriesFilter, setBoardSeriesFilter] = useState("全部系列");
+  const [boardStatusFilter, setBoardStatusFilter] = useState("upcoming"); // 'upcoming' | 'activeOnly' | 'all'
+  const [customCapacities, setCustomCapacities] = useState({});
+  const [editingCapCode, setEditingCapCode] = useState(null);
+  const [tempCapValue, setTempCapValue] = useState("");
+  const [expandedScheduleCode, setExpandedScheduleCode] = useState(null);
+
+  // 載入本地暫存的各團總名額設定
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("sunnyhouse_tour_capacities");
+      if (saved) setCustomCapacities(JSON.parse(saved));
+    } catch (e) {
+      console.warn("讀取本地名額設定失敗", e);
+    }
+  }, []);
+
   // 登入驗證
   const handleLogin = (e) => {
     e.preventDefault();
@@ -50,17 +149,72 @@ export default function AdminDashboard() {
     }
   };
 
-  // 取得所有報名資料
+  // 取得所有報名資料（並嘗試同步 Schedules 名額分頁）
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
       const response = await fetch('https://sheetdb.io/api/v1/6xxfvdvjl1t6l?sheet=Registration');
       const data = await response.json();
       setOrders(Array.isArray(data) ? data.reverse() : []);
+
+      // 嘗試讀取雲端 Schedules 分頁名額設定（若尚未建立該分頁則自動忽略）
+      try {
+        const capRes = await fetch('https://sheetdb.io/api/v1/6xxfvdvjl1t6l?sheet=Schedules');
+        if (capRes.ok) {
+          const capData = await capRes.json();
+          if (Array.isArray(capData)) {
+            const cloudMap = {};
+            capData.forEach(row => {
+              if (row["團號"] && row["總名額"]) {
+                cloudMap[row["團號"].trim()] = Number(row["總名額"]);
+              }
+            });
+            setCustomCapacities(prev => ({ ...prev, ...cloudMap }));
+          }
+        }
+      } catch (capErr) {
+        // 雲端尚無 Schedules 分頁時靜默略過
+      }
     } catch (error) {
       console.error("載入失敗:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 儲存某團總名額（同步本地與雲端 Schedules 分頁）
+  const handleSaveCapacity = async (code) => {
+    const num = parseInt(tempCapValue, 10);
+    if (isNaN(num) || num < 1) {
+      alert("請輸入大於 0 的有效名額數字！");
+      return;
+    }
+
+    const updated = { ...customCapacities, [code]: num };
+    setCustomCapacities(updated);
+    setEditingCapCode(null);
+
+    try {
+      localStorage.setItem("sunnyhouse_tour_capacities", JSON.stringify(updated));
+    } catch (e) {}
+
+    // 嘗試同步寫入 Google Sheet 的 Schedules 分頁
+    try {
+      const patchRes = await fetch(`https://sheetdb.io/api/v1/6xxfvdvjl1t6l/團號/${encodeURIComponent(code)}?sheet=Schedules`, {
+        method: 'PATCH',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { "總名額": num } })
+      });
+      const patchJson = await patchRes.json();
+      if (!patchJson.updated) {
+        await fetch(`https://sheetdb.io/api/v1/6xxfvdvjl1t6l?sheet=Schedules`, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: [{ "團號": code, "總名額": num }] })
+        });
+      }
+    } catch (e) {
+      // 若尚未建立 Schedules 分頁，本地已生效，不打斷操作
     }
   };
 
@@ -73,7 +227,6 @@ export default function AdminDashboard() {
   // 根據頁籤與行程篩選過濾訂單
   const filteredOrders = useMemo(() => {
     let baseList = orders;
-    // 若在「尾款請款與結清」頁籤，只顯示已付訂金/報名確認的正式團員
     if (activeTab === "balance") {
       baseList = orders.filter(o =>
         ["已收到訂金", "已發送確認信", "報名成功"].includes(o["訂單狀態"])
@@ -82,6 +235,212 @@ export default function AdminDashboard() {
     if (selectedTour === "全部行程") return baseList;
     return baseList.filter(o => o["行程名稱"] === selectedTour);
   }, [orders, selectedTour, activeTab]);
+
+  // ==========================================
+  // 【業務電子看板】統計計算邏輯
+  // ==========================================
+  const dashboardStats = useMemo(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const sevenDaysAgo = new Date(todayStart);
+    sevenDaysAgo.setDate(todayStart.getDate() - 6); // 含今天共 7 天
+
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    const activeOrders = orders.filter(o => o["訂單狀態"] !== "已取消");
+    const isConfirmed = (o) => ["已收到訂金", "已發送確認信", "報名成功"].includes(o["訂單狀態"]);
+
+    let weeklyTotal = 0;
+    let weeklyConfirmed = 0;
+    let monthlyTotal = 0;
+    let monthlyConfirmed = 0;
+
+    // 依時間週期分組（每月 / 每週）
+    const periodMap = {};
+
+    activeOrders.forEach(o => {
+      const regDate = parseTaiwanDate(o["報名時間"]);
+      const confirmed = isConfirmed(o);
+      const series = o["行程系列"] || "其他系列";
+
+      if (regDate) {
+        if (regDate >= sevenDaysAgo && regDate <= now) {
+          weeklyTotal += 1;
+          if (confirmed) weeklyConfirmed += 1;
+        }
+        if (regDate.getFullYear() === currentYear && regDate.getMonth() === currentMonth) {
+          monthlyTotal += 1;
+          if (confirmed) monthlyConfirmed += 1;
+        }
+
+        // 報表分組鍵值
+        let groupKey = "";
+        let groupLabel = "";
+        if (reportGranularity === "monthly") {
+          const mStr = String(regDate.getMonth() + 1).padStart(2, '0');
+          groupKey = `${regDate.getFullYear()}-${mStr}`;
+          groupLabel = `${regDate.getFullYear()} 年 ${mStr} 月`;
+        } else {
+          const wk = getMondayKey(regDate);
+          groupKey = wk.key;
+          groupLabel = `${wk.label} 週`;
+        }
+
+        if (!periodMap[groupKey]) {
+          periodMap[groupKey] = {
+            key: groupKey,
+            label: groupLabel,
+            total: 0,
+            confirmed: 0,
+            pending: 0,
+            seriesBreakdown: {}
+          };
+        }
+
+        if (boardSeriesFilter === "全部系列" || series === boardSeriesFilter) {
+          periodMap[groupKey].total += 1;
+          if (confirmed) periodMap[groupKey].confirmed += 1;
+          else periodMap[groupKey].pending += 1;
+          periodMap[groupKey].seriesBreakdown[series] = (periodMap[groupKey].seriesBreakdown[series] || 0) + 1;
+        }
+      }
+    });
+
+    const periodReports = Object.values(periodMap)
+      .filter(p => p.total > 0)
+      .sort((a, b) => b.key.localeCompare(a.key));
+
+    // 建立各團梯次收客與倒數清單（合併主檔與試算表中出現的梯次）
+    const scheduleMap = {};
+    MASTER_SCHEDULES.forEach(sch => {
+      scheduleMap[sch.code] = {
+        ...sch,
+        confirmedList: [],
+        pendingList: []
+      };
+    });
+
+    activeOrders.forEach(o => {
+      const code = (o["出團檔期"] || "").trim();
+      if (!code) return;
+      if (!scheduleMap[code]) {
+        const seriesName = o["行程系列"] || "其他系列";
+        const tourName = o["行程名稱"] || code;
+        scheduleMap[code] = {
+          code,
+          series: seriesName,
+          tourName,
+          dateRange: "依公告檔期",
+          startDate: "",
+          defaultCapacity: seriesName === "中國自駕系列" ? 12 : 16,
+          isTibet: seriesName === "西藏系列" || code.startsWith("TC"),
+          confirmedList: [],
+          pendingList: []
+        };
+      }
+      if (isConfirmed(o)) {
+        scheduleMap[code].confirmedList.push(o);
+      } else {
+        scheduleMap[code].pendingList.push(o);
+      }
+    });
+
+    // 計算每團距離出發日天數、西藏三階段警戒與剩餘名額
+    let urgentTibetCount = 0;
+
+    const scheduleRows = Object.values(scheduleMap).map(sch => {
+      const capacity = customCapacities[sch.code] || sch.defaultCapacity;
+      const confirmedCount = sch.confirmedList.length;
+      const pendingCount = sch.pendingList.length;
+      const totalOccupied = confirmedCount + pendingCount;
+      const remainingConfirmed = Math.max(0, capacity - confirmedCount);
+      const remainingAll = Math.max(0, capacity - totalOccupied);
+
+      let daysUntil = null;
+      if (sch.startDate) {
+        const [y, m, d] = sch.startDate.split("-").map(Number);
+        const depDate = new Date(y, m - 1, d);
+        daysUntil = Math.ceil((depDate - todayStart) / (1000 * 60 * 60 * 24));
+      }
+
+      // 判斷收客與行政階段燈號
+      let stageBadge = { text: "正常收客中", color: "bg-emerald-100 text-emerald-800 border-emerald-200", subText: "" };
+      let isCutoffStopped = false;
+
+      if (daysUntil !== null) {
+        if (daysUntil < 0) {
+          stageBadge = { text: "已出發 / 歷史團", color: "bg-gray-100 text-gray-500 border-gray-200", subText: `已出發 ${Math.abs(daysUntil)} 天` };
+          isCutoffStopped = true;
+        } else if (sch.isTibet) {
+          if (daysUntil <= 20) {
+            stageBadge = { text: "🔴 行政結案死線 (≤20天)", color: "bg-red-100 text-red-800 border-red-300", subText: "證件/機票行政須完成" };
+            isCutoffStopped = true;
+            urgentTibetCount += 1;
+          } else if (daysUntil <= 25) {
+            stageBadge = { text: "⛔ 停止收客 (D-25已過)", color: "bg-orange-100 text-orange-800 border-orange-300", subText: `距D-20行政截止剩 ${daysUntil - 20} 天` };
+            isCutoffStopped = true;
+            urgentTibetCount += 1;
+          } else if (daysUntil <= 30) {
+            stageBadge = { text: "⚠️ 最終收客期 (D-30警報)", color: "bg-amber-100 text-amber-900 border-amber-300", subText: `距D-25停止收客剩 ${daysUntil - 25} 天` };
+            urgentTibetCount += 1;
+          } else {
+            stageBadge = { text: "🟢 正常收客中", color: "bg-emerald-100 text-emerald-800 border-emerald-200", subText: `距D-30最終收客剩 ${daysUntil - 30} 天` };
+          }
+        } else {
+          if (daysUntil <= 20) {
+            stageBadge = { text: "🟠 出團前20日準備", color: "bg-orange-100 text-orange-800 border-orange-200", subText: `倒數 ${daysUntil} 天出發` };
+          } else if (daysUntil <= 30) {
+            stageBadge = { text: "🟡 出發前30日衝刺", color: "bg-amber-100 text-amber-800 border-amber-200", subText: `倒數 ${daysUntil} 天出發` };
+          } else {
+            stageBadge = { text: "🟢 正常收客中", color: "bg-emerald-100 text-emerald-800 border-emerald-200", subText: `倒數 ${daysUntil} 天出發` };
+          }
+        }
+      }
+
+      return {
+        ...sch,
+        capacity,
+        confirmedCount,
+        pendingCount,
+        totalOccupied,
+        remainingConfirmed,
+        remainingAll,
+        daysUntil,
+        stageBadge,
+        isCutoffStopped,
+        d30Date: formatOffsetDate(sch.startDate, -30),
+        d25Date: formatOffsetDate(sch.startDate, -25),
+        d20Date: formatOffsetDate(sch.startDate, -20)
+      };
+    });
+
+    return {
+      weeklyTotal,
+      weeklyConfirmed,
+      monthlyTotal,
+      monthlyConfirmed,
+      totalActive: activeOrders.length,
+      totalConfirmedAll: activeOrders.filter(isConfirmed).length,
+      urgentTibetCount,
+      periodReports,
+      scheduleRows
+    };
+  }, [orders, reportGranularity, boardSeriesFilter, customCapacities]);
+
+  // 過濾電子看板的梯次列表
+  const filteredBoardSchedules = useMemo(() => {
+    return dashboardStats.scheduleRows.filter(sch => {
+      if (boardSeriesFilter !== "全部系列" && sch.series !== boardSeriesFilter) return false;
+      if (boardStatusFilter === "upcoming") {
+        return sch.daysUntil === null || sch.daysUntil >= 0;
+      }
+      if (boardStatusFilter === "activeOnly") {
+        return sch.totalOccupied > 0;
+      }
+      return true;
+    });
+  }, [dashboardStats.scheduleRows, boardSeriesFilter, boardStatusFilter]);
 
   // 更新欄位寫回 SheetDB 的通用函式
   const updateSheetDB = async (orderId, updateData) => {
@@ -222,7 +581,6 @@ export default function AdminDashboard() {
   // 打開【尾款】帳單產生器 Modal
   const openBalanceModal = (order) => {
     setSelectedOrderForBalance(order);
-    // 若試算表已有明細 JSON 則解析載入，否則自動建立預設兩筆項目
     let parsedItems = [];
     if (order["尾款明細"]) {
       try {
@@ -267,7 +625,6 @@ export default function AdminDashboard() {
     setUpdatingId(orderId);
     setShowBalanceModal(false);
 
-    // 整理給 EmailJS 的純文字明細清單
     const feeDetailsText = validItems
       .map(item => {
         const amt = Number(item.amount) || 0;
@@ -389,7 +746,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#f5f7f9] p-4 sm:p-6 font-sans">
-      <div className="max-w-[1400px] mx-auto relative">
+      <div className="max-w-[1440px] mx-auto relative">
 
         {/* 頂部導航列 */}
         <div className="flex justify-between items-center mb-6 border-b border-gray-300 pb-2">
@@ -397,37 +754,41 @@ export default function AdminDashboard() {
             <Link href="/query" className="bg-white text-gray-600 hover:text-gray-900 px-6 py-2 rounded-t-lg font-bold border border-b-0 border-gray-300">
               隊員報名查詢
             </Link>
-            <div className="bg-[#2c3e50] text-white px-6 py-2 rounded-t-lg font-bold">管理員後台</div>
+            <div className="bg-[#2c3e50] text-white px-6 py-2 rounded-t-lg font-bold">管理員後台（內部專用）</div>
           </div>
           <Link href="/" className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1">
             ← 返回客戶首頁
           </Link>
         </div>
 
-        {/* 報名名單總覽標頭與篩選器 */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 mb-4">
+        {/* 報名名單總覽標頭與三大工作頁籤 */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 mb-5">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-gray-100">
             <div>
               <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                報名與帳務管理總覽
+                陽光小屋業務與帳務管理系統
                 {isLoading && <span className="text-sm font-normal text-blue-500 animate-pulse">資料同步中...</span>}
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                目前檢視共 <span className="font-bold text-green-600">{filteredOrders.length}</span> 筆資料
+                系統總進單 <span className="font-bold text-gray-800">{orders.length}</span> 筆 ｜ 有效未取消 <span className="font-bold text-green-600">{dashboardStats.totalActive}</span> 筆
               </p>
             </div>
 
             <div className="flex items-center gap-3 mt-4 sm:mt-0">
-              <label className="text-sm text-gray-600">行程篩選：</label>
-              <select
-                value={selectedTour}
-                onChange={(e) => setSelectedTour(e.target.value)}
-                className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:ring-[#2c3e50]"
-              >
-                {uniqueTours.map(tour => (
-                  <option key={tour} value={tour}>{tour}</option>
-                ))}
-              </select>
+              {activeTab !== "board" && (
+                <>
+                  <label className="text-sm text-gray-600">行程篩選：</label>
+                  <select
+                    value={selectedTour}
+                    onChange={(e) => setSelectedTour(e.target.value)}
+                    className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:ring-[#2c3e50]"
+                  >
+                    {uniqueTours.map(tour => (
+                      <option key={tour} value={tour}>{tour}</option>
+                    ))}
+                  </select>
+                </>
+              )}
               <button onClick={fetchOrders} className="bg-white border border-gray-300 text-gray-700 px-4 py-1.5 rounded text-sm hover:bg-gray-50 flex items-center gap-1 shadow-sm">
                 <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 重新整理
@@ -435,8 +796,8 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* 階段切換頁籤：訂金 vs 尾款 */}
-          <div className="flex gap-3 pt-4">
+          {/* 三大階段工作頁籤 */}
+          <div className="flex flex-wrap gap-3 pt-4">
             <button
               onClick={() => setActiveTab("deposit")}
               className={`px-5 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${
@@ -447,7 +808,7 @@ export default function AdminDashboard() {
             >
               <span>① 訂金與新報名審核</span>
               <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === "deposit" ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"}`}>
-                全部 {orders.length}
+                {orders.length}
               </span>
             </button>
 
@@ -461,13 +822,31 @@ export default function AdminDashboard() {
             >
               <span>② 尾款請款與結清</span>
               <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === "balance" ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"}`}>
-                已付訂團員 {orders.filter(o => ["已收到訂金", "已發送確認信", "報名成功"].includes(o["訂單狀態"])).length}
+                {orders.filter(o => ["已收到訂金", "已發送確認信", "報名成功"].includes(o["訂單狀態"])).length}
               </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("board")}
+              className={`px-5 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${
+                activeTab === "board"
+                  ? "bg-amber-600 text-white shadow-sm"
+                  : "bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100"
+              }`}
+            >
+              <span>📊 ③ 業務收客電子看板（內部戰情）</span>
+              {dashboardStats.urgentTibetCount > 0 && (
+                <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">
+                  {dashboardStats.urgentTibetCount} 團警戒
+                </span>
+              )}
             </button>
           </div>
         </div>
 
-        {/* 資料列表區：頁籤 1【訂金與新報名審核】 */}
+        {/* ========================================================= */}
+        {/* 頁籤 1：【訂金與新報名審核】                                */}
+        {/* ========================================================= */}
         {activeTab === "deposit" && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
             <table className="w-full text-left border-collapse text-sm">
@@ -590,7 +969,9 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* 資料列表區：頁籤 2【尾款請款與結清】 */}
+        {/* ========================================================= */}
+        {/* 頁籤 2：【尾款請款與結清】                                  */}
+        {/* ========================================================= */}
         {activeTab === "balance" && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
             <table className="w-full text-left border-collapse text-sm">
@@ -721,6 +1102,384 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* ========================================================= */}
+        {/* 頁籤 3：【業務收客電子看板（內部戰情專用）】                  */}
+        {/* ========================================================= */}
+        {activeTab === "board" && (
+          <div className="space-y-6">
+
+            {/* 1. 頂部關鍵收客 KPI 卡片 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">本週新增收客（近 7 日）</div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-gray-900">{dashboardStats.weeklyTotal}</span>
+                  <span className="text-sm text-gray-500">人進單</span>
+                </div>
+                <div className="mt-2 text-xs text-emerald-700 font-semibold">
+                  ✓ 其中 {dashboardStats.weeklyConfirmed} 人已確認訂金
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">本月新增收客（當月）</div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-[#8A1C14]">{dashboardStats.monthlyTotal}</span>
+                  <span className="text-sm text-gray-500">人進單</span>
+                </div>
+                <div className="mt-2 text-xs text-emerald-700 font-semibold">
+                  ✓ 其中 {dashboardStats.monthlyConfirmed} 人已確認訂金
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">全檔期有效總收客</div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-slate-800">{dashboardStats.totalConfirmedAll}</span>
+                  <span className="text-sm text-gray-500">人已付訂</span>
+                </div>
+                <div className="mt-2 text-xs text-amber-700 font-semibold">
+                  ＋ {dashboardStats.totalActive - dashboardStats.totalConfirmedAll} 人保留中（待付訂）
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-amber-50 to-red-50 rounded-xl p-5 border border-amber-200 shadow-sm">
+                <div className="text-xs font-bold text-amber-900 uppercase tracking-wider">🏔️ 西藏證件期限警戒梯次</div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-red-700">{dashboardStats.urgentTibetCount}</span>
+                  <span className="text-sm text-red-800 font-bold">個梯次進入 ≤30天</span>
+                </div>
+                <div className="mt-2 text-xs text-gray-700">
+                  D-30 最終收客 ｜ D-25 停收 ｜ D-20 行政完成
+                </div>
+              </div>
+            </div>
+
+            {/* 2. 西藏入藏證件作業規範提醒橫幅 */}
+            <div className="bg-slate-800 text-white rounded-xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">🏔️</span>
+                <div className="text-xs sm:text-sm space-y-1">
+                  <div className="font-bold text-amber-400 text-base">西藏入藏證件與行政控管基準線（系統自動倒數）</div>
+                  <p className="text-slate-300">
+                    因入藏函辦理需提前送審，系統自動依各團出發日計算三大節點：
+                    <span className="text-amber-300 font-bold mx-1">① 出發前 30 天（最終收客期）</span>➔
+                    <span className="text-orange-300 font-bold mx-1">② 出發前 25 天（停止收客）</span>➔
+                    <span className="text-red-300 font-bold mx-1">③ 出發前 20 天（完成證件與機票行政作業）</span>
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs shrink-0">
+                <span className="text-slate-400">系列篩選：</span>
+                <select
+                  value={boardSeriesFilter}
+                  onChange={(e) => setBoardSeriesFilter(e.target.value)}
+                  className="bg-slate-700 text-white border border-slate-600 rounded px-3 py-1.5 font-medium"
+                >
+                  <option value="全部系列">全部系列</option>
+                  <option value="西藏系列">西藏系列</option>
+                  <option value="新疆系列">新疆系列</option>
+                  <option value="中國自駕系列">中國自駕系列</option>
+                  <option value="埃及系列">埃及系列</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 3. 各團梯次收客進度與剩餘可販售名額看板 */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-5 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">📋 各團梯次收客統計與剩餘可販售名額</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">點擊「總名額」數字可直接修改每團上限；點擊梯次列可展開該團名單</p>
+                </div>
+                <div className="flex gap-2 text-xs">
+                  <button
+                    onClick={() => setBoardStatusFilter("upcoming")}
+                    className={`px-3 py-1.5 rounded font-bold border ${boardStatusFilter === "upcoming" ? "bg-slate-800 text-white border-slate-800" : "bg-white text-gray-600 border-gray-300"}`}
+                  >
+                    未出發梯次
+                  </button>
+                  <button
+                    onClick={() => setBoardStatusFilter("activeOnly")}
+                    className={`px-3 py-1.5 rounded font-bold border ${boardStatusFilter === "activeOnly" ? "bg-slate-800 text-white border-slate-800" : "bg-white text-gray-600 border-gray-300"}`}
+                  >
+                    僅看有人報名
+                  </button>
+                  <button
+                    onClick={() => setBoardStatusFilter("all")}
+                    className={`px-3 py-1.5 rounded font-bold border ${boardStatusFilter === "all" ? "bg-slate-800 text-white border-slate-800" : "bg-white text-gray-600 border-gray-300"}`}
+                  >
+                    全部梯次
+                  </button>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 text-xs">
+                      <th className="p-4 font-bold">團號 / 出發日期</th>
+                      <th className="p-4 font-bold">行程名稱</th>
+                      <th className="p-4 font-bold">收客與行政期限狀態（D-30 / D-25 / D-20）</th>
+                      <th className="p-4 font-bold text-center">總名額</th>
+                      <th className="p-4 font-bold text-center">已付訂 / 待付訂</th>
+                      <th className="p-4 font-bold text-center">剩餘可販售</th>
+                      <th className="p-4 font-bold w-48">成團進度條</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredBoardSchedules.map((sch) => {
+                      const confirmedPct = Math.min(100, Math.round((sch.confirmedCount / sch.capacity) * 100));
+                      const pendingPct = Math.min(100 - confirmedPct, Math.round((sch.pendingCount / sch.capacity) * 100));
+                      const isExpanded = expandedScheduleCode === sch.code;
+
+                      return (
+                        <>
+                          <tr
+                            key={sch.code}
+                            onClick={() => setExpandedScheduleCode(isExpanded ? null : sch.code)}
+                            className={`border-b border-gray-100 cursor-pointer transition-colors ${
+                              sch.isCutoffStopped && sch.daysUntil >= 0
+                                ? "bg-orange-50/40 hover:bg-orange-50"
+                                : "hover:bg-slate-50"
+                            }`}
+                          >
+                            {/* 團號與出發日 */}
+                            <td className="p-4 align-top">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-black text-base text-[#8A1C14]">{sch.code}</span>
+                                {sch.daysUntil !== null && sch.daysUntil >= 0 && (
+                                  <span className="text-[11px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                                    剩 {sch.daysUntil} 天
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-600 font-mono mt-1">{sch.dateRange}</div>
+                            </td>
+
+                            {/* 行程名稱 */}
+                            <td className="p-4 align-top">
+                              <div className="font-bold text-gray-800">{sch.tourName}</div>
+                              <div className="text-xs text-gray-400 mt-0.5">{sch.series}</div>
+                            </td>
+
+                            {/* 收客與行政期限狀態 */}
+                            <td className="p-4 align-top">
+                              <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded border ${sch.stageBadge.color}`}>
+                                {sch.stageBadge.text}
+                              </span>
+                              {sch.stageBadge.subText && (
+                                <div className="text-xs font-medium text-gray-700 mt-1">{sch.stageBadge.subText}</div>
+                              )}
+                              {sch.isTibet && sch.startDate && (
+                                <div className="text-[11px] text-gray-500 mt-1 font-mono">
+                                  最終:{sch.d30Date} ｜ 停收:{sch.d25Date} ｜ 行政:{sch.d20Date}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* 總名額（可點擊修改） */}
+                            <td className="p-4 align-top text-center" onClick={(e) => e.stopPropagation()}>
+                              {editingCapCode === sch.code ? (
+                                <div className="flex items-center justify-center gap-1">
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={tempCapValue}
+                                    onChange={(e) => setTempCapValue(e.target.value)}
+                                    className="w-16 border border-blue-400 rounded px-1.5 py-1 text-center font-mono text-sm"
+                                  />
+                                  <button
+                                    onClick={() => handleSaveCapacity(sch.code)}
+                                    className="bg-blue-600 text-white text-xs px-2 py-1 rounded font-bold"
+                                  >
+                                    存
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setEditingCapCode(sch.code);
+                                    setTempCapValue(String(sch.capacity));
+                                  }}
+                                  className="font-mono font-bold text-gray-800 hover:text-blue-600 hover:underline px-2 py-1 rounded bg-gray-100"
+                                  title="點擊修改本團總名額"
+                                >
+                                  {sch.capacity} 人 ✎
+                                </button>
+                              )}
+                            </td>
+
+                            {/* 已付訂 / 待付訂 */}
+                            <td className="p-4 align-top text-center">
+                              <div className="font-mono text-sm">
+                                <span className="font-black text-emerald-700">{sch.confirmedCount}</span>
+                                <span className="text-gray-400 mx-1">/</span>
+                                <span className="font-bold text-amber-600">{sch.pendingCount}</span>
+                              </div>
+                              <div className="text-[11px] text-gray-400">實佔 / 保留</div>
+                            </td>
+
+                            {/* 剩餘可販售 */}
+                            <td className="p-4 align-top text-center">
+                              {sch.isCutoffStopped ? (
+                                <div>
+                                  <span className="inline-block bg-gray-200 text-gray-700 text-xs font-bold px-2.5 py-1 rounded">
+                                    已停售（剩 {sch.remainingConfirmed} 空位）
+                                  </span>
+                                </div>
+                              ) : sch.remainingConfirmed === 0 ? (
+                                <span className="inline-block bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded">
+                                  已滿團 (0)
+                                </span>
+                              ) : (
+                                <div>
+                                  <span className={`font-mono text-lg font-black ${sch.remainingConfirmed <= 3 ? "text-red-600" : "text-blue-700"}`}>
+                                    剩 {sch.remainingConfirmed} 位
+                                  </span>
+                                  {sch.pendingCount > 0 && (
+                                    <div className="text-[11px] text-amber-700">
+                                      (扣保留剩 {sch.remainingAll} 位)
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* 視覺化進度條 */}
+                            <td className="p-4 align-middle">
+                              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden flex">
+                                <div
+                                  style={{ width: `${confirmedPct}%` }}
+                                  className="bg-emerald-600 h-full transition-all"
+                                  title={`已付訂：${sch.confirmedCount}人`}
+                                />
+                                <div
+                                  style={{ width: `${pendingPct}%` }}
+                                  className="bg-amber-400 h-full transition-all"
+                                  title={`待付訂保留：${sch.pendingCount}人`}
+                                />
+                              </div>
+                              <div className="flex justify-between text-[11px] text-gray-500 mt-1">
+                                <span>已佔 {sch.totalOccupied}/{sch.capacity}</span>
+                                <span>{isExpanded ? "▲ 收合名單" : "▼ 展開名單"}</span>
+                              </div>
+                            </td>
+                          </tr>
+
+                          {/* 展開顯示該梯次報名團員明細 */}
+                          {isExpanded && (
+                            <tr className="bg-slate-50 border-b border-gray-200">
+                              <td colSpan="7" className="p-4 sm:p-5">
+                                <div className="bg-white rounded-lg border border-slate-200 p-4">
+                                  <div className="font-bold text-sm text-slate-800 mb-3 flex justify-between items-center">
+                                    <span>👥 {sch.code} 團員佔位清單（共 {sch.totalOccupied} 位有效報名）</span>
+                                    <span className="text-xs font-normal text-gray-500">綠標為已確認訂金、黃標為尚未確認訂金</span>
+                                  </div>
+                                  {sch.totalOccupied === 0 ? (
+                                    <p className="text-xs text-gray-400 py-2">本梯次目前尚無有效報名紀錄。</p>
+                                  ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 text-xs">
+                                      {sch.confirmedList.map((m, i) => (
+                                        <div key={`c-${i}`} className="p-2.5 rounded border border-emerald-200 bg-emerald-50/60 flex justify-between items-center">
+                                          <div>
+                                            <span className="font-bold text-gray-900">{m["中文姓名"]}</span>
+                                            <span className="text-gray-500 ml-1">({m["性別"]})</span>
+                                            <div className="text-[11px] text-gray-500">{m["手機號碼"]}</div>
+                                          </div>
+                                          <span className="bg-emerald-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">已付訂</span>
+                                        </div>
+                                      ))}
+                                      {sch.pendingList.map((m, i) => (
+                                        <div key={`p-${i}`} className="p-2.5 rounded border border-amber-200 bg-amber-50/60 flex justify-between items-center">
+                                          <div>
+                                            <span className="font-bold text-gray-900">{m["中文姓名"]}</span>
+                                            <span className="text-gray-500 ml-1">({m["性別"]})</span>
+                                            <div className="text-[11px] text-gray-500">{m["手機號碼"]}</div>
+                                          </div>
+                                          <span className="bg-amber-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">保留中</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })}
+                    {filteredBoardSchedules.length === 0 && (
+                      <tr><td colSpan="7" className="p-8 text-center text-gray-500">目前篩選條件下無符合的團次。</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 4. 每週 / 每月收客業績統計報表 */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-5 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">📈 每週 / 每月收客趨勢報表</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">統計各時間區間的實際收客進單量（已自動排除取消訂單）</p>
+                </div>
+                <div className="flex bg-gray-100 p-1 rounded-lg text-xs font-bold">
+                  <button
+                    onClick={() => setReportGranularity("monthly")}
+                    className={`px-4 py-1.5 rounded-md transition-all ${reportGranularity === "monthly" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600"}`}
+                  >
+                    按月份統計
+                  </button>
+                  <button
+                    onClick={() => setReportGranularity("weekly")}
+                    className={`px-4 py-1.5 rounded-md transition-all ${reportGranularity === "weekly" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600"}`}
+                  >
+                    按週次統計
+                  </button>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 text-xs">
+                      <th className="p-4 font-bold w-56">{reportGranularity === "monthly" ? "統計月份" : "統計週期（週一～週日）"}</th>
+                      <th className="p-4 font-bold text-center w-32">總進單人數</th>
+                      <th className="p-4 font-bold text-center w-32">已確認付訂</th>
+                      <th className="p-4 font-bold text-center w-32">待付訂保留</th>
+                      <th className="p-4 font-bold">各系列收客分布</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dashboardStats.periodReports.map((row) => (
+                      <tr key={row.key} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="p-4 font-mono font-bold text-gray-800">{row.label}</td>
+                        <td className="p-4 text-center font-mono text-base font-black text-gray-900">{row.total} 人</td>
+                        <td className="p-4 text-center font-mono font-bold text-emerald-700">{row.confirmed} 人</td>
+                        <td className="p-4 text-center font-mono font-bold text-amber-600">{row.pending} 人</td>
+                        <td className="p-4">
+                          <div className="flex flex-wrap gap-1.5">
+                            {Object.entries(row.seriesBreakdown).map(([sName, count]) => (
+                              <span key={sName} className="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full font-medium">
+                                {sName}：<strong className="text-slate-900">{count}</strong> 人
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {dashboardStats.periodReports.length === 0 && (
+                      <tr><td colSpan="5" className="p-8 text-center text-gray-500">尚無符合條件的收客時間紀錄。</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        )}
+
         {/* Modal 1：【訂金】輸入刷卡連結與效期 */}
         {showCardModal && selectedOrderForCard && (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -790,7 +1549,6 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* 動態明細項目列表 */}
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <label className="text-sm font-bold text-gray-800">費用明細項目（折抵或已付訂金請填負數，如 -15000）</label>
@@ -852,7 +1610,6 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* 尾款支付方式設定 */}
                 <div className="border-t pt-4 space-y-4">
                   <div>
                     <label className="block text-sm font-bold text-gray-800 mb-2">尾款支付方式</label>
