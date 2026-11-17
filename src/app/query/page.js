@@ -17,7 +17,7 @@ const scheduleDateMap = {
   "TC1": "04/23-05/02", "TC2": "10/22-10/31",
   "XSD1": "04/02-04/11", "XSD2": "10/22-10/31",
   // 埃及系列
-  "EG1": "2026/12/04-12/15", "EG2": "2027/01/22-02/02", "EG3": "2027/02/26-03/09", 
+  "EG1": "2026/12/04-12/15", "EG2": "2027/01/22-02/02", "EG3": "2027/02/26-03/09",
   "EG4": "2027/04/02-04/13", "EG5": "2027/04/30-05/11"
 };
 
@@ -29,6 +29,17 @@ const formatSchedule = (code) => {
   return dateStr ? `${cleanCode}（${dateStr}）` : cleanCode;
 };
 
+// 安全解析尾款明細 JSON
+const parseBalanceItems = (rawJson) => {
+  if (!rawJson) return [];
+  try {
+    const parsed = JSON.parse(rawJson);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+};
+
 export default function QueryForm() {
   const [searchData, setSearchData] = useState({ name: "", idNumber: "" });
   const [isSearching, setIsSearching] = useState(false);
@@ -37,9 +48,15 @@ export default function QueryForm() {
   const [orderList, setOrderList] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  // 訂金後五碼狀態
   const [last5Digits, setLast5Digits] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
+
+  // 尾款後五碼狀態
+  const [balanceLast5Digits, setBalanceLast5Digits] = useState("");
+  const [isUpdatingBalance, setIsUpdatingBalance] = useState(false);
+  const [balanceUpdateSuccess, setBalanceUpdateSuccess] = useState(false);
 
   const handleSearchChange = (e) => {
     setSearchData({ ...searchData, [e.target.name]: e.target.value });
@@ -53,21 +70,20 @@ export default function QueryForm() {
     setOrderList([]);
     setSelectedOrder(null);
     setUpdateSuccess(false);
+    setBalanceUpdateSuccess(false);
 
     const cleanName = searchData.name.trim();
     const cleanId = searchData.idNumber.trim().toUpperCase();
 
     try {
-      // 方案 A：精確搜尋 (含 URL 編碼)
       const queryUrl = `https://sheetdb.io/api/v1/6xxfvdvjl1t6l/search?sheet=Registration&${encodeURIComponent("中文姓名")}=${encodeURIComponent(cleanName)}&${encodeURIComponent("身分證_護照號碼")}=${encodeURIComponent(cleanId)}`;
       let response = await fetch(queryUrl);
       let data = await response.json();
 
-      // 方案 B 備用容錯：若精準搜尋未命中，抓取全表在前端比對
       if (!data || data.length === 0 || data.error) {
         const fallbackRes = await fetch(`https://sheetdb.io/api/v1/6xxfvdvjl1t6l?sheet=Registration`);
         const allRows = await fallbackRes.json();
-        
+
         if (Array.isArray(allRows)) {
           data = allRows.filter(row => {
             const rowName = (row["中文姓名"] || "").toString().trim();
@@ -90,10 +106,10 @@ export default function QueryForm() {
     }
   };
 
-  // 回填匯款後五碼
+  // 回填【訂金】匯款後五碼
   const handleUpdateTransfer = async () => {
     if (!last5Digits || last5Digits.trim().length < 5) {
-      alert("請輸入完整的帳號後五碼！");
+      alert("請輸入完整的訂金匯款帳號後五碼！");
       return;
     }
     setIsUpdating(true);
@@ -107,14 +123,13 @@ export default function QueryForm() {
 
     try {
       const updateUrl = `https://sheetdb.io/api/v1/6xxfvdvjl1t6l/訂單編號/${encodeURIComponent(selectedOrder["訂單編號"])}?sheet=Registration`;
-      
       const response = await fetch(updateUrl, {
         method: 'PATCH',
         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       const result = await response.json();
-      
+
       if (result.updated || result.rows) {
         setUpdateSuccess(true);
         setSelectedOrder(prev => ({
@@ -122,9 +137,9 @@ export default function QueryForm() {
           "客戶匯款後五碼": last5Digits.trim(),
           "訂單狀態": "已匯款等候確認"
         }));
-        setOrderList(prevList => prevList.map(order => 
-          order["訂單編號"] === selectedOrder["訂單編號"] 
-            ? { ...order, "客戶匯款後五碼": last5Digits.trim(), "訂單狀態": "已匯款等候確認" } 
+        setOrderList(prevList => prevList.map(order =>
+          order["訂單編號"] === selectedOrder["訂單編號"]
+            ? { ...order, "客戶匯款後五碼": last5Digits.trim(), "訂單狀態": "已匯款等候確認" }
             : order
         ));
       } else {
@@ -138,18 +153,79 @@ export default function QueryForm() {
     }
   };
 
+  // 回填【尾款】匯款後五碼
+  const handleUpdateBalanceTransfer = async () => {
+    if (!balanceLast5Digits || balanceLast5Digits.trim().length < 5) {
+      alert("請輸入完整的尾款匯款帳號後五碼！");
+      return;
+    }
+    setIsUpdatingBalance(true);
+
+    const payload = {
+      data: {
+        "尾款後五碼": balanceLast5Digits.trim(),
+        "尾款狀態": "已匯款待核對"
+      }
+    };
+
+    try {
+      const updateUrl = `https://sheetdb.io/api/v1/6xxfvdvjl1t6l/訂單編號/${encodeURIComponent(selectedOrder["訂單編號"])}?sheet=Registration`;
+      const response = await fetch(updateUrl, {
+        method: 'PATCH',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+
+      if (result.updated || result.rows) {
+        setBalanceUpdateSuccess(true);
+        setSelectedOrder(prev => ({
+          ...prev,
+          "尾款後五碼": balanceLast5Digits.trim(),
+          "尾款狀態": "已匯款待核對"
+        }));
+        setOrderList(prevList => prevList.map(order =>
+          order["訂單編號"] === selectedOrder["訂單編號"]
+            ? { ...order, "尾款後五碼": balanceLast5Digits.trim(), "尾款狀態": "已匯款待核對" }
+            : order
+        ));
+      } else {
+        alert("尾款對帳更新未成功，請稍後再試。");
+      }
+    } catch (error) {
+      console.error("尾款更新失敗:", error);
+      alert("更新失敗，請檢查網路連線。");
+    } finally {
+      setIsUpdatingBalance(false);
+    }
+  };
+
+  // 計算四階段進度狀態
+  const getProgressSteps = (order) => {
+    const isDepositDone = ["已收到訂金", "已發送確認信", "報名成功"].includes(order["訂單狀態"]);
+    const isBalanceBilled = ["已通知繳尾款", "已匯款待核對", "尾款已結清"].includes(order["尾款狀態"]);
+    const isBalanceSettled = order["尾款狀態"] === "尾款已結清";
+
+    return [
+      { step: 1, label: "填表報名", done: true, active: !isDepositDone },
+      { step: 2, label: "訂金確認", done: isDepositDone, active: isDepositDone && !isBalanceBilled },
+      { step: 3, label: "尾款請款", done: isBalanceSettled, active: isDepositDone && isBalanceBilled && !isBalanceSettled },
+      { step: 4, label: "全額結清", done: isBalanceSettled, active: isBalanceSettled }
+    ];
+  };
+
   return (
     <div className="min-h-screen bg-[#FDFBF7] py-8 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-4xl mx-auto">
         <Link href="/" className="inline-flex items-center text-[#8A1C14] hover:underline mb-6 text-sm font-semibold">
           ← 返回首頁
         </Link>
-        
+
         <div className="bg-white rounded-xl shadow-md overflow-hidden border-t-8 border-[#5c6b73]">
           <div className="p-6 sm:p-10">
             <div className="text-center mb-8 border-b border-gray-200 pb-8">
               <h1 className="text-3xl font-bold text-gray-900">客戶查詢系統</h1>
-              <p className="mt-2 text-gray-600">請輸入報名時填寫的姓名與證號以核對訂單資料</p>
+              <p className="mt-2 text-gray-600">請輸入報名時填寫的姓名與證號以核對訂單與繳費進度</p>
             </div>
 
             {/* 搜尋表單 */}
@@ -159,33 +235,33 @@ export default function QueryForm() {
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">中文姓名</label>
-                      <input 
-                        type="text" 
-                        name="name" 
-                        value={searchData.name} 
-                        onChange={handleSearchChange} 
-                        className="w-full rounded border-gray-300 border p-3 focus:ring-[#5c6b73] focus:border-[#5c6b73]" 
-                        placeholder="例：王小明" 
-                        required 
+                      <input
+                        type="text"
+                        name="name"
+                        value={searchData.name}
+                        onChange={handleSearchChange}
+                        className="w-full rounded border-gray-300 border p-3 focus:ring-[#5c6b73] focus:border-[#5c6b73]"
+                        placeholder="例：王小明"
+                        required
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">身分證/護照號碼</label>
-                      <input 
-                        type="text" 
-                        name="idNumber" 
-                        value={searchData.idNumber} 
-                        onChange={handleSearchChange} 
-                        className="w-full rounded border-gray-300 border p-3 focus:ring-[#5c6b73] focus:border-[#5c6b73]" 
-                        placeholder="例：A123456789 (不分大小寫)" 
-                        required 
+                      <input
+                        type="text"
+                        name="idNumber"
+                        value={searchData.idNumber}
+                        onChange={handleSearchChange}
+                        className="w-full rounded border-gray-300 border p-3 focus:ring-[#5c6b73] focus:border-[#5c6b73]"
+                        placeholder="例：A123456789 (不分大小寫)"
+                        required
                       />
                     </div>
                   </div>
                   <div className="mt-6 text-center">
-                    <button 
-                      type="submit" 
-                      disabled={isSearching} 
+                    <button
+                      type="submit"
+                      disabled={isSearching}
                       className="bg-[#5c6b73] hover:bg-[#4a565d] text-white px-10 py-3 rounded-lg font-bold transition-colors disabled:bg-gray-400 shadow-sm"
                     >
                       {isSearching ? '查詢中，請稍候...' : '查詢訂單'}
@@ -206,22 +282,28 @@ export default function QueryForm() {
                       查詢到 {orderList.length} 筆符合的報名紀錄：
                     </h3>
                     {orderList.map((order) => (
-                      <div 
-                        key={order["訂單編號"]} 
+                      <div
+                        key={order["訂單編號"]}
                         className="bg-gray-50 border border-gray-200 rounded-lg p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:shadow-md transition-shadow gap-4"
                       >
                         <div>
                           <span className="text-xs text-gray-500 font-mono block mb-1">訂單編號：{order["訂單編號"]}</span>
                           <h4 className="font-bold text-[#8A1C14] text-lg">{order["行程名稱"]}</h4>
                           <p className="text-sm text-gray-600 mt-1">
-                            出團檔期：<span className="font-semibold text-gray-900">{formatSchedule(order["出團檔期"])}</span> ｜ 狀態：<span className="font-bold text-orange-700">{order["訂單狀態"]}</span>
+                            出團檔期：<span className="font-semibold text-gray-900">{formatSchedule(order["出團檔期"])}</span> ｜
+                            訂金：<span className="font-bold text-orange-700">{order["訂單狀態"]}</span>
+                            {order["尾款狀態"] && order["尾款狀態"] !== "未請款" && (
+                              <span> ｜ 尾款：<span className="font-bold text-blue-700">{order["尾款狀態"]}</span></span>
+                            )}
                           </p>
                         </div>
-                        <button 
+                        <button
                           onClick={() => {
                             setSelectedOrder(order);
                             setUpdateSuccess(false);
+                            setBalanceUpdateSuccess(false);
                             setLast5Digits("");
+                            setBalanceLast5Digits("");
                           }}
                           className="bg-white border border-[#5c6b73] text-[#5c6b73] px-5 py-2.5 rounded-lg hover:bg-[#5c6b73] hover:text-white transition-colors text-sm font-bold whitespace-nowrap shadow-sm"
                         >
@@ -235,223 +317,401 @@ export default function QueryForm() {
             )}
 
             {/* 完整詳細明細頁面 */}
-            {selectedOrder && (
-              <div className="space-y-6">
-                <button 
-                  onClick={() => setSelectedOrder(null)} 
-                  className="text-sm text-gray-500 hover:text-gray-900 mb-2 flex items-center gap-1 font-medium"
-                >
-                  ← 返回訂單清單
-                </button>
-                
-                {/* 1. 訂單狀態標頭 */}
-                <div className="bg-gradient-to-r from-stone-50 to-orange-50/40 rounded-xl border border-stone-200 p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <span className="text-xs font-mono text-gray-500 block mb-1">訂單編號：{selectedOrder["訂單編號"]}</span>
-                    <h2 className="text-2xl font-bold text-[#8A1C14]">{selectedOrder["行程名稱"]}</h2>
-                    <p className="text-sm text-gray-600 mt-1">
-                      出團檔期：<strong className="text-gray-900 font-semibold">{formatSchedule(selectedOrder["出團檔期"])}</strong>
-                      {selectedOrder["天數"] && <span> ｜ 行程天數：<strong className="text-gray-900">{selectedOrder["天數"]}</strong></span>}
-                    </p>
-                  </div>
-                  <div className="text-right flex flex-col items-start sm:items-end">
-                    <span className="text-xs text-gray-400 mb-1">報名時間：{selectedOrder["報名時間"]}</span>
-                    <span className="bg-orange-100 text-orange-900 text-sm font-bold px-4 py-1.5 rounded-full border border-orange-200">
-                      狀態：{selectedOrder["訂單狀態"]}
-                    </span>
-                  </div>
-                </div>
+            {selectedOrder && (() => {
+              const isCancelled = selectedOrder["訂單狀態"] === "已取消";
+              const isDepositConfirmed = ["已收到訂金", "已發送確認信", "報名成功"].includes(selectedOrder["訂單狀態"]);
+              const balanceItems = parseBalanceItems(selectedOrder["尾款明細"]);
+              const balancePayMethod = selectedOrder["尾款支付方式"] || selectedOrder["支付方式"];
+              const isBalanceBilled = ["已通知繳尾款", "已匯款待核對", "尾款已結清"].includes(selectedOrder["尾款狀態"]);
+              const isBalanceSettled = selectedOrder["尾款狀態"] === "尾款已結清";
+              const progressSteps = getProgressSteps(selectedOrder);
 
-                {/* 2. 旅客完整報名資料核對卡 */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-6">
-                  <div>
-                    <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
-                      <span className="text-[#8A1C14]">●</span> 旅客基本證件資料
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                      <div className="bg-gray-50 p-3 rounded">
-                        <span className="text-gray-500 text-xs block">中文姓名</span>
-                        <span className="font-semibold text-gray-900 text-base">{selectedOrder["中文姓名"]}</span>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded">
-                        <span className="text-gray-500 text-xs block">性別 / 國籍</span>
-                        <span className="font-medium text-gray-900">{selectedOrder["性別"]} / {selectedOrder["國籍"]}</span>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded">
-                        <span className="text-gray-500 text-xs block">出生年月日</span>
-                        <span className="font-mono text-gray-900">{selectedOrder["出生年月日"]}</span>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded">
-                        <span className="text-gray-500 text-xs block">身分證/護照號碼</span>
-                        <span className="font-mono font-semibold text-gray-900">{selectedOrder["身分證_護照號碼"]}</span>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded">
-                        <span className="text-gray-500 text-xs block">聯絡手機</span>
-                        <span className="font-mono text-gray-900">{selectedOrder["手機號碼"]}</span>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded sm:col-span-2">
-                        <span className="text-gray-500 text-xs block">電子信箱 Email</span>
-                        <span className="text-gray-900 break-all">{selectedOrder["Email"]}</span>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded">
-                        <span className="text-gray-500 text-xs block">LINE 名稱/ID</span>
-                        <span className="text-gray-900">{selectedOrder["LINE名稱_ID"] || "未提供"}</span>
+              return (
+                <div className="space-y-6">
+                  <button
+                    onClick={() => setSelectedOrder(null)}
+                    className="text-sm text-gray-500 hover:text-gray-900 mb-2 flex items-center gap-1 font-medium"
+                  >
+                    ← 返回訂單清單
+                  </button>
+
+                  {/* 0. 四階段進度條 */}
+                  {isCancelled ? (
+                    <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-center font-bold">
+                      ✕ 此筆訂單已取消，如有疑問請聯繫陽光小屋客服專員。
+                    </div>
+                  ) : (
+                    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                      <div className="grid grid-cols-4 gap-2 relative">
+                        {progressSteps.map((s) => (
+                          <div key={s.step} className="flex flex-col items-center text-center z-10">
+                            <div
+                              className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm mb-2 transition-all ${
+                                s.done
+                                  ? "bg-green-600 text-white shadow-sm"
+                                  : s.active
+                                  ? "bg-[#F59E0B] text-black ring-4 ring-amber-100"
+                                  : "bg-gray-100 text-gray-400 border border-gray-200"
+                              }`}
+                            >
+                              {s.done ? "✓" : s.step}
+                            </div>
+                            <span
+                              className={`text-xs sm:text-sm font-bold ${
+                                s.done ? "text-green-700" : s.active ? "text-amber-800" : "text-gray-400"
+                              }`}
+                            >
+                              {s.label}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
+                  )}
 
-                  <div>
-                    <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
-                      <span className="text-[#8A1C14]">●</span> 餐飲與住宿安排需求
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                      <div className="bg-gray-50 p-3 rounded">
-                        <span className="text-gray-500 text-xs block">飲食習慣</span>
-                        <span className="font-medium text-gray-900">
-                          {selectedOrder["飲食習慣"]}
-                          {selectedOrder["飲食備註"] ? ` (${selectedOrder["飲食備註"]})` : ''}
+                  {/* 1. 訂單狀態標頭 */}
+                  <div className="bg-gradient-to-r from-stone-50 to-orange-50/40 rounded-xl border border-stone-200 p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <span className="text-xs font-mono text-gray-500 block mb-1">訂單編號：{selectedOrder["訂單編號"]}</span>
+                      <h2 className="text-2xl font-bold text-[#8A1C14]">{selectedOrder["行程名稱"]}</h2>
+                      <p className="text-sm text-gray-600 mt-1">
+                        出團檔期：<strong className="text-gray-900 font-semibold">{formatSchedule(selectedOrder["出團檔期"])}</strong>
+                        {selectedOrder["天數"] && <span> ｜ 行程天數：<strong className="text-gray-900">{selectedOrder["天數"]}</strong></span>}
+                      </p>
+                    </div>
+                    <div className="text-right flex flex-col items-start sm:items-end gap-1.5">
+                      <span className="text-xs text-gray-400">報名時間：{selectedOrder["報名時間"]}</span>
+                      <span className="bg-orange-100 text-orange-900 text-xs font-bold px-3.5 py-1 rounded-full border border-orange-200">
+                        訂金狀態：{selectedOrder["訂單狀態"]}
+                      </span>
+                      {selectedOrder["尾款狀態"] && selectedOrder["尾款狀態"] !== "未請款" && (
+                        <span className={`text-xs font-bold px-3.5 py-1 rounded-full border ${
+                          isBalanceSettled
+                            ? "bg-green-100 text-green-800 border-green-200"
+                            : "bg-blue-100 text-blue-800 border-blue-200"
+                        }`}>
+                          尾款狀態：{selectedOrder["尾款狀態"]}
                         </span>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded sm:col-span-2">
-                        <span className="text-gray-500 text-xs block">住宿房型安排</span>
-                        <span className="font-medium text-gray-900">{selectedOrder["住宿安排"]}</span>
-                      </div>
-                      {selectedOrder["其他需求"] && (
-                        <div className="bg-gray-50 p-3 rounded sm:col-span-3">
-                          <span className="text-gray-500 text-xs block">其他需求或留言</span>
-                          <span className="text-gray-700">{selectedOrder["其他需求"]}</span>
-                        </div>
                       )}
                     </div>
                   </div>
 
-                  {(selectedOrder["自駕分組"] || selectedOrder["自駕角色_配置"]) && (
+                  {/* 2. 繳費與對帳操作區（智慧切換：訂金階段 vs 尾款階段） */}
+                  {!isCancelled && (
+                    <div className="bg-white p-6 rounded-xl border-2 border-stone-200 shadow-sm space-y-5">
+                      {/* 若訂金已確認，先顯示訂金完成綠框，再展開尾款明細與繳費 */}
+                      {isDepositConfirmed ? (
+                        <>
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3.5 flex items-center justify-between text-sm text-green-900">
+                            <span className="font-bold flex items-center gap-2">
+                              <span className="text-green-600 text-base">✓</span>
+                              第一階段訂金（NT$ 15,000 元）已確認收訖
+                            </span>
+                            <span className="text-xs text-green-700">名額已保留</span>
+                          </div>
+
+                          <div className="border-t pt-4 space-y-4">
+                            <div className="flex justify-between items-center">
+                              <h4 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+                                <span>🧾 第二階段：團費尾款明細與繳費</span>
+                              </h4>
+                              {isBalanceBilled && (
+                                <span className="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded font-medium">
+                                  支付方式：{balancePayMethod}
+                                </span>
+                              )}
+                            </div>
+
+                            {!isBalanceBilled ? (
+                              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-700 leading-relaxed">
+                                目前尚無待繳尾款。業務專員將於<strong>出發前 45 日</strong>為您核算個人團費明細並發送 Email 通知，屆時可於此處核對明細並進行尾款繳付。
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                {/* 尾款費用明細表 */}
+                                <div className="bg-[#FDFBF7] border border-amber-200/80 rounded-xl p-4 sm:p-5">
+                                  <div className="text-xs font-bold text-amber-900 mb-3 tracking-wider">費用明細核對單</div>
+                                  <div className="divide-y divide-amber-200/50 text-sm">
+                                    {balanceItems.map((item, idx) => {
+                                      const amt = Number(item.amount) || 0;
+                                      return (
+                                        <div key={idx} className="py-2.5 flex justify-between items-center">
+                                          <span className="text-gray-800 font-medium">{item.name}</span>
+                                          <span className={`font-mono font-semibold ${amt < 0 ? "text-green-700" : "text-gray-900"}`}>
+                                            {amt < 0 ? `- NT$ ${Math.abs(amt).toLocaleString()}` : `NT$ ${amt.toLocaleString()}`}
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  <div className="border-t-2 border-amber-300 mt-3 pt-3 flex justify-between items-center">
+                                    <span className="font-bold text-gray-900">本次應付尾款總額</span>
+                                    <span className="font-mono text-xl font-black text-[#8A1C14]">
+                                      NT$ {Number(selectedOrder["應付尾款"] || 0).toLocaleString()} 元
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* 尾款繳費操作區 */}
+                                {isBalanceSettled ? (
+                                  <div className="bg-green-50 border border-green-300 text-green-900 p-4 rounded-lg text-sm font-medium">
+                                    🎉 尾款已確認入帳，您的全額團費已結清！請留意業務專員通知的行前說明會與團隊群組資訊。
+                                  </div>
+                                ) : balancePayMethod === "匯款" ? (
+                                  !selectedOrder["尾款後五碼"] ? (
+                                    <div className="space-y-3 bg-orange-50/50 p-4 rounded-lg border border-orange-200">
+                                      <div className="text-xs sm:text-sm text-gray-700 space-y-1">
+                                        <p className="font-bold text-[#8A1C14]">🏦 台新銀行（812）內湖分行｜帳號：2048-01-0000524-0（純數字：20480100005240）</p>
+                                        <p>完成尾款轉帳後，請在下方回填您的匯款帳號後五碼：</p>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <input
+                                          type="text"
+                                          maxLength="5"
+                                          placeholder="請輸入尾款帳號後五碼"
+                                          value={balanceLast5Digits}
+                                          onChange={(e) => setBalanceLast5Digits(e.target.value)}
+                                          className="border border-gray-300 rounded-lg p-2.5 flex-grow focus:ring-[#8A1C14] font-mono bg-white"
+                                        />
+                                        <button
+                                          onClick={handleUpdateBalanceTransfer}
+                                          disabled={isUpdatingBalance}
+                                          className="bg-[#8A1C14] hover:bg-[#9c221a] text-white px-5 py-2.5 rounded-lg font-bold text-sm disabled:bg-gray-400 whitespace-nowrap transition-colors"
+                                        >
+                                          {isUpdatingBalance ? '傳送中...' : '送出尾款對帳'}
+                                        </button>
+                                      </div>
+                                      {balanceUpdateSuccess && <p className="text-green-600 text-sm font-semibold">✓ 已成功送出尾款後五碼，請靜候財務專員核對！</p>}
+                                    </div>
+                                  ) : (
+                                    <div className="text-green-800 bg-green-50 p-4 rounded-lg border border-green-200 text-sm">
+                                      ✓ 已回填尾款匯款後五碼：<strong className="font-mono text-base">{selectedOrder["尾款後五碼"]}</strong>。財務專員核對入帳後將為您寄出結清確認信。
+                                    </div>
+                                  )
+                                ) : (
+                                  selectedOrder["尾款刷卡連結"] ? (
+                                    <div className="space-y-3 bg-blue-50/50 p-4 rounded-lg border border-blue-200">
+                                      <div className="text-sm text-gray-700">
+                                        <p className="mb-2">專員已為您建立尾款專屬刷卡連結，請點擊下方按鈕完成結帳：</p>
+                                        {selectedOrder["尾款有效期限"] && (
+                                          <p className="text-red-600 font-bold bg-red-50 inline-block px-3 py-1 rounded border border-red-200">
+                                            ⏳ 敬請於 {selectedOrder["尾款有效期限"]} 前完成付款
+                                          </p>
+                                        )}
+                                      </div>
+                                      <a
+                                        href={selectedOrder["尾款刷卡連結"]}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-block bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-8 py-3 rounded-lg font-bold text-sm transition-colors shadow-md"
+                                      >
+                                        💳 前往尾款信用卡線上付款 →
+                                      </a>
+                                    </div>
+                                  ) : (
+                                    <div className="text-amber-800 bg-amber-50 p-4 rounded-lg border border-amber-200 text-sm">
+                                      專員正在為您建立尾款專屬刷卡連結，請稍後再次查詢或留意 Email 通知。
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        /* 訂金尚未確認前：維持原本的訂金付款處理區 */
+                        <>
+                          <div className="flex justify-between items-center border-b pb-3">
+                            <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                              <span>第一階段：訂金付款處理</span>
+                              <span className="text-xs font-normal text-gray-500">（選擇方式：{selectedOrder["支付方式"]}）</span>
+                            </h4>
+                            <span className="text-sm font-semibold text-[#8A1C14]">應付訂金：NT$ {selectedOrder["應付訂金"]}</span>
+                          </div>
+
+                          {selectedOrder["支付方式"] === "匯款" && (!selectedOrder["客戶匯款後五碼"]) ? (
+                            <div className="space-y-3">
+                              <p className="text-sm text-gray-600">
+                                您選擇以銀行匯款支付。完成轉帳後，請在此回填您的帳號後五碼以利財務人員對帳：
+                              </p>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  maxLength="5"
+                                  placeholder="請輸入帳號後五碼"
+                                  value={last5Digits}
+                                  onChange={(e) => setLast5Digits(e.target.value)}
+                                  className="border border-gray-300 rounded-lg p-2.5 flex-grow focus:ring-[#8A1C14] font-mono"
+                                />
+                                <button
+                                  onClick={handleUpdateTransfer}
+                                  disabled={isUpdating}
+                                  className="bg-[#8A1C14] hover:bg-[#9c221a] text-white px-5 py-2.5 rounded-lg font-bold text-sm disabled:bg-gray-400 whitespace-nowrap transition-colors"
+                                >
+                                  {isUpdating ? '傳送中...' : '送出對帳'}
+                                </button>
+                              </div>
+                              {updateSuccess && <p className="text-green-600 text-sm font-semibold">✓ 已成功送出後五碼，請靜候專員審核！</p>}
+                            </div>
+                          ) : selectedOrder["支付方式"] === "匯款" && selectedOrder["客戶匯款後五碼"] ? (
+                            <div className="text-green-800 bg-green-50 p-4 rounded-lg border border-green-200 text-sm">
+                              ✓ 已回填匯款後五碼：<strong className="font-mono text-base">{selectedOrder["客戶匯款後五碼"]}</strong>。財務專員將於核對後為您確認訂金。
+                            </div>
+                          ) : selectedOrder["支付方式"] === "刷卡" && selectedOrder["刷卡連結"] ? (
+                            <div className="space-y-4">
+                              <div className="text-sm text-gray-600">
+                                <p className="mb-2">專員已生成專屬刷卡付款連結，請點擊下方按鈕前往結帳：</p>
+                                {selectedOrder["刷卡有效期限"] && (
+                                  <p className="text-red-600 font-bold bg-red-50 inline-block px-3 py-1 rounded">
+                                    ⏳ 敬請於 {selectedOrder["刷卡有效期限"]} 前完成付款
+                                  </p>
+                                )}
+                              </div>
+                              <a
+                                href={selectedOrder["刷卡連結"]}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-block bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-8 py-3 rounded-lg font-bold text-sm transition-colors shadow-md"
+                              >
+                                💳 前往信用卡線上付款 →
+                              </a>
+                            </div>
+                          ) : (
+                            <div className="text-amber-800 bg-amber-50 p-4 rounded-lg border border-amber-200 text-sm">
+                              專員正在為您建立專屬刷卡連結，請稍後再次查詢，或留意您的 Email / LINE 通知。
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 3. 旅客完整報名資料核對卡 */}
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-6">
                     <div>
                       <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
-                        <span className="text-amber-700">●</span> 車輛與自駕分組配置
+                        <span className="text-[#8A1C14]">●</span> 旅客基本證件資料
+                      </h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                        <div className="bg-gray-50 p-3 rounded">
+                          <span className="text-gray-500 text-xs block">中文姓名</span>
+                          <span className="font-semibold text-gray-900 text-base">{selectedOrder["中文姓名"]}</span>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded">
+                          <span className="text-gray-500 text-xs block">性別 / 國籍</span>
+                          <span className="font-medium text-gray-900">{selectedOrder["性別"]} / {selectedOrder["國籍"]}</span>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded">
+                          <span className="text-gray-500 text-xs block">出生年月日</span>
+                          <span className="font-mono text-gray-900">{selectedOrder["出生年月日"]}</span>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded">
+                          <span className="text-gray-500 text-xs block">身分證/護照號碼</span>
+                          <span className="font-mono font-semibold text-gray-900">{selectedOrder["身分證_護照號碼"]}</span>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded">
+                          <span className="text-gray-500 text-xs block">聯絡手機</span>
+                          <span className="font-mono text-gray-900">{selectedOrder["手機號碼"]}</span>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded sm:col-span-2">
+                          <span className="text-gray-500 text-xs block">電子信箱 Email</span>
+                          <span className="text-gray-900 break-all">{selectedOrder["Email"]}</span>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded">
+                          <span className="text-gray-500 text-xs block">LINE 名稱/ID</span>
+                          <span className="text-gray-900">{selectedOrder["LINE名稱_ID"] || "未提供"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
+                        <span className="text-[#8A1C14]">●</span> 餐飲與住宿安排需求
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                        <div className="bg-amber-50/50 p-3 rounded border border-amber-100">
-                          <span className="text-amber-800 text-xs block">自駕分組</span>
-                          <span className="font-semibold text-gray-900">{selectedOrder["自駕分組"]}</span>
+                        <div className="bg-gray-50 p-3 rounded">
+                          <span className="text-gray-500 text-xs block">飲食習慣</span>
+                          <span className="font-medium text-gray-900">
+                            {selectedOrder["飲食習慣"]}
+                            {selectedOrder["飲食備註"] ? ` (${selectedOrder["飲食備註"]})` : ''}
+                          </span>
                         </div>
-                        <div className="bg-amber-50/50 p-3 rounded border border-amber-100">
-                          <span className="text-amber-800 text-xs block">車輛/角色配置</span>
-                          <span className="font-medium text-gray-900">{selectedOrder["自駕角色_配置"]}</span>
+                        <div className="bg-gray-50 p-3 rounded sm:col-span-2">
+                          <span className="text-gray-500 text-xs block">住宿房型安排</span>
+                          <span className="font-medium text-gray-900">{selectedOrder["住宿安排"]}</span>
                         </div>
-                        {selectedOrder["重機車種"] && (
-                          <div className="bg-amber-50/50 p-3 rounded border border-amber-100">
-                            <span className="text-amber-800 text-xs block">重機車種</span>
-                            <span className="font-medium text-gray-900">{selectedOrder["重機車種"]}</span>
+                        {selectedOrder["其他需求"] && (
+                          <div className="bg-gray-50 p-3 rounded sm:col-span-3">
+                            <span className="text-gray-500 text-xs block">其他需求或留言</span>
+                            <span className="text-gray-700">{selectedOrder["其他需求"]}</span>
                           </div>
                         )}
                       </div>
                     </div>
-                  )}
 
-                  {selectedOrder["是否開立統編"] === "是" && (
-                    <div>
-                      <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
-                        <span className="text-gray-700">●</span> 代轉收據開立資訊
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-gray-50 p-3 rounded">
-                        <div>
-                          <span className="text-gray-500 text-xs block">公司抬頭</span>
-                          <span className="font-medium text-gray-900">{selectedOrder["公司抬頭"]}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500 text-xs block">統一編號</span>
-                          <span className="font-mono font-bold text-gray-900">{selectedOrder["統一編號"]}</span>
+                    {(selectedOrder["自駕分組"] || selectedOrder["自駕角色_配置"]) && (
+                      <div>
+                        <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
+                          <span className="text-amber-700">●</span> 車輛與自駕分組配置
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                          <div className="bg-amber-50/50 p-3 rounded border border-amber-100">
+                            <span className="text-amber-800 text-xs block">自駕分組</span>
+                            <span className="font-semibold text-gray-900">{selectedOrder["自駕分組"]}</span>
+                          </div>
+                          <div className="bg-amber-50/50 p-3 rounded border border-amber-100">
+                            <span className="text-amber-800 text-xs block">車輛/角色配置</span>
+                            <span className="font-medium text-gray-900">{selectedOrder["自駕角色_配置"]}</span>
+                          </div>
+                          {selectedOrder["重機車種"] && (
+                            <div className="bg-amber-50/50 p-3 rounded border border-amber-100">
+                              <span className="text-amber-800 text-xs block">重機車種</span>
+                              <span className="font-medium text-gray-900">{selectedOrder["重機車種"]}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
 
-                {/* 3. 重要備註提示框 */}
-                <div className="bg-amber-50 border-l-4 border-amber-500 p-4 sm:p-5 rounded-r-xl shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <span className="text-amber-600 text-xl leading-none">⚠️</span>
-                    <div className="text-xs sm:text-sm text-amber-900 leading-relaxed space-y-1">
-                      <p className="font-bold text-amber-950 text-sm sm:text-base">
-                        資料核對與修正重要提醒：
-                      </p>
-                      <p>
-                        為確保<strong>入藏函申請、團隊機票與邊防通行證</strong>順利出證，上述旅客之「中文姓名」、「身分證/護照號碼」及「出生年月日」必須與實際證件完全相符。
-                      </p>
-                      <p className="font-medium text-red-800">
-                        ※ 若發現資料填寫錯誤或行程需求需要變更，基於航管與保險法規，系統不開放旅客自行線上修改。請儘速聯絡您的<strong>專屬旅遊業務專員</strong>或撥打客服，由專員為您進行人工覆核與更正。
-                      </p>
+                    {selectedOrder["是否開立統編"] === "是" && (
+                      <div>
+                        <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
+                          <span className="text-gray-700">●</span> 代轉收據開立資訊
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-gray-50 p-3 rounded">
+                          <div>
+                            <span className="text-gray-500 text-xs block">公司抬頭</span>
+                            <span className="font-medium text-gray-900">{selectedOrder["公司抬頭"]}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 text-xs block">統一編號</span>
+                            <span className="font-mono font-bold text-gray-900">{selectedOrder["統一編號"]}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 4. 重要備註提示框 */}
+                  <div className="bg-amber-50 border-l-4 border-amber-500 p-4 sm:p-5 rounded-r-xl shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <span className="text-amber-600 text-xl leading-none">⚠️</span>
+                      <div className="text-xs sm:text-sm text-amber-900 leading-relaxed space-y-1">
+                        <p className="font-bold text-amber-950 text-sm sm:text-base">
+                          資料核對與修正重要提醒：
+                        </p>
+                        <p>
+                          為確保<strong>入藏函申請、團隊機票與邊防通行證</strong>順利出證，上述旅客之「中文姓名」、「身分證/護照號碼」及「出生年月日」必須與實際證件完全相符。
+                        </p>
+                        <p className="font-medium text-red-800">
+                          ※ 若發現資料填寫錯誤或行程需求需要變更，基於航管與保險法規，系統不開放旅客自行線上修改。請儘速聯絡您的<strong>專屬旅遊業務專員</strong>或撥打客服，由專員為您進行人工覆核與更正。
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                {/* 4. 繳費與對帳操作區 */}
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
-                  <div className="flex justify-between items-center border-b pb-3">
-                    <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                      <span>付款處理</span>
-                      <span className="text-xs font-normal text-gray-500">（選擇方式：{selectedOrder["支付方式"]}）</span>
-                    </h4>
-                    <span className="text-sm font-semibold text-[#8A1C14]">應付訂金：NT$ {selectedOrder["應付訂金"]}</span>
-                  </div>
-                  
-                  {selectedOrder["支付方式"] === "匯款" && (!selectedOrder["客戶匯款後五碼"]) ? (
-                    <div className="space-y-3">
-                      <p className="text-sm text-gray-600">
-                        您選擇以銀行匯款支付。完成轉帳後，請在此回填您的帳號後五碼以利財務人員對帳：
-                      </p>
-                      <div className="flex gap-2">
-                        <input 
-                          type="text" 
-                          maxLength="5" 
-                          placeholder="請輸入帳號後五碼" 
-                          value={last5Digits}
-                          onChange={(e) => setLast5Digits(e.target.value)}
-                          className="border border-gray-300 rounded-lg p-2.5 flex-grow focus:ring-[#8A1C14] font-mono"
-                        />
-                        <button 
-                          onClick={handleUpdateTransfer} 
-                          disabled={isUpdating} 
-                          className="bg-[#8A1C14] hover:bg-[#9c221a] text-white px-5 py-2.5 rounded-lg font-bold text-sm disabled:bg-gray-400 whitespace-nowrap transition-colors"
-                        >
-                          {isUpdating ? '傳送中...' : '送出對帳'}
-                        </button>
-                      </div>
-                      {updateSuccess && <p className="text-green-600 text-sm font-semibold">✓ 已成功送出後五碼，請靜候專員審核！</p>}
-                    </div>
-                  ) : selectedOrder["支付方式"] === "匯款" && selectedOrder["客戶匯款後五碼"] ? (
-                    <div className="text-green-800 bg-green-50 p-4 rounded-lg border border-green-200 text-sm">
-                      ✓ 已回填匯款後五碼：<strong className="font-mono text-base">{selectedOrder["客戶匯款後五碼"]}</strong>。財務專員將於核對後為您確認訂金。
-                    </div>
-                  ) : selectedOrder["支付方式"] === "刷卡" && selectedOrder["刷卡連結"] ? (
-                    <div className="space-y-4">
-                      <div className="text-sm text-gray-600">
-                        <p className="mb-2">專員已生成專屬刷卡付款連結，請點擊下方按鈕前往結帳：</p>
-                        {selectedOrder["刷卡有效期限"] && (
-                           <p className="text-red-600 font-bold bg-red-50 inline-block px-3 py-1 rounded">
-                             ⏳ 敬請於 {selectedOrder["刷卡有效期限"]} 前完成付款
-                           </p>
-                        )}
-                      </div>
-                      <a 
-                        href={selectedOrder["刷卡連結"]} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-block bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-8 py-3 rounded-lg font-bold text-sm transition-colors shadow-md"
-                      >
-                        💳 前往信用卡線上付款 →
-                      </a>
-                    </div>
-                  ) : (
-                    <div className="text-amber-800 bg-amber-50 p-4 rounded-lg border border-amber-200 text-sm">
-                      專員正在為您建立專屬刷卡連結，請稍後再次查詢，或留意您的 Email / LINE 通知。
-                    </div>
-                  )}
-                </div>
-
-              </div>
-            )}
+              );
+            })()}
 
           </div>
         </div>
