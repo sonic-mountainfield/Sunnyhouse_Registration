@@ -15,35 +15,35 @@ const TEMPLATE_E_BALANCE_SETTLED = "template_zmu9rni";
 // 完整團號與出發日期主檔（供電子看板計算 D-30 / D-25 / D-20 倒數與剩餘名額）
 const MASTER_SCHEDULES = [
   // 西藏系列（需辦理入藏函，嚴格執行 D-30 / D-25 / D-20 控管）
-  { code: "TE1", series: "西藏系列", tourName: "TE｜林芝桃花・頂級西藏青藏鐵路12日", dateRange: "03/19-03/30", startDate: "2026-03-19", defaultCapacity: 16, isTibet: true },
-  { code: "TE2", series: "西藏系列", tourName: "TE｜林芝桃花・頂級西藏青藏鐵路12日", dateRange: "04/02-04/13", startDate: "2026-04-02", defaultCapacity: 16, isTibet: true },
-  { code: "TE3", series: "西藏系列", tourName: "TE｜林芝桃花・頂級西藏青藏鐵路12日", dateRange: "10/22-11/02", startDate: "2026-10-22", defaultCapacity: 16, isTibet: true },
-  { code: "TE4", series: "西藏系列", tourName: "TE｜林芝桃花・頂級西藏青藏鐵路12日", dateRange: "11/05-11/16", startDate: "2026-11-05", defaultCapacity: 16, isTibet: true },
+  { code: "TE1", series: "西藏系列", tourName: "TE｜林芝桃花・頂級西藏青藏鐵路12日", dateRange: "2027/03/19-03/30", startDate: "2027-03-19", defaultCapacity: 16, isTibet: true },
+  { code: "TE2", series: "西藏系列", tourName: "TE｜林芝桃花・頂級西藏青藏鐵路12日", dateRange: "2027/04/02-04/13", startDate: "2027-04-02", defaultCapacity: 16, isTibet: true },
+  { code: "TE3", series: "西藏系列", tourName: "TE｜林芝桃花・頂級西藏青藏鐵路12日", dateRange: "2027/10/22-11/02", startDate: "2027-10-22", defaultCapacity: 16, isTibet: true },
+  { code: "TE4", series: "西藏系列", tourName: "TE｜林芝桃花・頂級西藏青藏鐵路12日", dateRange: "2027/11/05-11/16", startDate: "2027-11-05", defaultCapacity: 16, isTibet: true },
 
-  { code: "TB1", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "04/02-04/13", startDate: "2026-04-02", defaultCapacity: 16, isTibet: true },
-  { code: "TB2", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "04/23-05/04", startDate: "2026-04-23", defaultCapacity: 16, isTibet: true },
-  { code: "TB3", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "06/04-06/15", startDate: "2026-06-04", defaultCapacity: 16, isTibet: true },
-  { code: "TB4", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "07/09-07/20", startDate: "2026-07-09", defaultCapacity: 16, isTibet: true },
-  { code: "TB5", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "08/13-08/24", startDate: "2026-08-13", defaultCapacity: 16, isTibet: true },
-  { code: "TB6", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "09/10-09/21", startDate: "2026-09-10", defaultCapacity: 16, isTibet: true },
-  { code: "TB7", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "09/24-10/05", startDate: "2026-09-24", defaultCapacity: 16, isTibet: true },
-  { code: "TB8", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "10/08-10/19", startDate: "2026-10-08", defaultCapacity: 16, isTibet: true },
-  { code: "TB9", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "10/22-11/02", startDate: "2026-10-22", defaultCapacity: 16, isTibet: true },
+  { code: "TB1", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "2027/04/02-04/13", startDate: "2027-04-02", defaultCapacity: 16, isTibet: true },
+  { code: "TB2", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "2027/04/23-05/04", startDate: "2027-04-23", defaultCapacity: 16, isTibet: true },
+  { code: "TB3", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "2027/06/04-06/15", startDate: "2027-06-04", defaultCapacity: 16, isTibet: true },
+  { code: "TB4", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "2027/07/09-07/20", startDate: "2027-07-09", defaultCapacity: 16, isTibet: true },
+  { code: "TB5", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "2027/08/13-08/24", startDate: "2027-08-13", defaultCapacity: 16, isTibet: true },
+  { code: "TB6", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "2027/09/10-09/21", startDate: "2027-09-10", defaultCapacity: 16, isTibet: true },
+  { code: "TB7", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "2027/09/24-10/05", startDate: "2027-09-24", defaultCapacity: 16, isTibet: true },
+  { code: "TB8", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "2027/10/08-10/19", startDate: "2027-10-08", defaultCapacity: 16, isTibet: true },
+  { code: "TB9", series: "西藏系列", tourName: "TB｜西藏聖母峰大環線・神山聖湖", dateRange: "2027/10/22-11/02", startDate: "2027-10-22", defaultCapacity: 16, isTibet: true },
 
-  { code: "TK1", series: "西藏系列", tourName: "TK｜阿里岡仁波齊轉山之旅", dateRange: "06/04-06/15", startDate: "2026-06-04", defaultCapacity: 16, isTibet: true },
-  { code: "TK2", series: "西藏系列", tourName: "TK｜阿里岡仁波齊轉山之旅", dateRange: "09/10-09/21", startDate: "2026-09-10", defaultCapacity: 16, isTibet: true },
+  { code: "TK1", series: "西藏系列", tourName: "TK｜阿里岡仁波齊轉山之旅", dateRange: "2027/06/04-06/15", startDate: "2027-06-04", defaultCapacity: 16, isTibet: true },
+  { code: "TK2", series: "西藏系列", tourName: "TK｜阿里岡仁波齊轉山之旅", dateRange: "2027/09/10-09/21", startDate: "2027-09-10", defaultCapacity: 16, isTibet: true },
 
   // 新疆系列
-  { code: "XS1", series: "新疆系列", tourName: "XS｜南疆・帕米爾高原・盤龍古道", dateRange: "04/02-04/11", startDate: "2026-04-02", defaultCapacity: 16, isTibet: false },
-  { code: "XS2", series: "新疆系列", tourName: "XS｜南疆・帕米爾高原・盤龍古道", dateRange: "10/22-10/31", startDate: "2026-10-22", defaultCapacity: 16, isTibet: false },
+  { code: "XS1", series: "新疆系列", tourName: "XS｜南疆・帕米爾高原・盤龍古道", dateRange: "2027/04/02-04/11", startDate: "2027-04-02", defaultCapacity: 16, isTibet: false },
+  { code: "XS2", series: "新疆系列", tourName: "XS｜南疆・帕米爾高原・盤龍古道", dateRange: "2027/10/22-10/31", startDate: "2027-10-22", defaultCapacity: 16, isTibet: false },
 
   // 中國自駕系列（TC 含西藏段亦適用入藏規則）
-  { code: "TC318-1", series: "中國自駕系列", tourName: "TC318｜此生必駕318・重機/四驅車自駕", dateRange: "04/14-04/26", startDate: "2026-04-14", defaultCapacity: 12, isTibet: true },
-  { code: "TC318-2", series: "中國自駕系列", tourName: "TC318｜此生必駕318・重機/四驅車自駕", dateRange: "10/13-10/25", startDate: "2026-10-13", defaultCapacity: 12, isTibet: true },
-  { code: "TC1", series: "中國自駕系列", tourName: "TC｜聖母峰・重機/四驅車自駕", dateRange: "04/23-05/02", startDate: "2026-04-23", defaultCapacity: 12, isTibet: true },
-  { code: "TC2", series: "中國自駕系列", tourName: "TC｜聖母峰・重機/四驅車自駕", dateRange: "10/22-10/31", startDate: "2026-10-22", defaultCapacity: 12, isTibet: true },
-  { code: "XSD1", series: "中國自駕系列", tourName: "XSD｜帕米爾高原・盤龍古道 重機/四驅車自駕", dateRange: "04/02-04/11", startDate: "2026-04-02", defaultCapacity: 12, isTibet: false },
-  { code: "XSD2", series: "中國自駕系列", tourName: "XSD｜帕米爾高原・盤龍古道 重機/四驅車自駕", dateRange: "10/22-10/31", startDate: "2026-10-22", defaultCapacity: 12, isTibet: false },
+  { code: "TC318-1", series: "中國自駕系列", tourName: "TC318｜此生必駕318・重機/四驅車自駕", dateRange: "2027/04/14-04/26", startDate: "2027-04-14", defaultCapacity: 12, isTibet: true },
+  { code: "TC318-2", series: "中國自駕系列", tourName: "TC318｜此生必駕318・重機/四驅車自駕", dateRange: "2027/10/13-10/25", startDate: "2027-10-13", defaultCapacity: 12, isTibet: true },
+  { code: "TC1", series: "中國自駕系列", tourName: "TC｜聖母峰・重機/四驅車自駕", dateRange: "2027/04/23-05/02", startDate: "2027-04-23", defaultCapacity: 12, isTibet: true },
+  { code: "TC2", series: "中國自駕系列", tourName: "TC｜聖母峰・重機/四驅車自駕", dateRange: "2027/10/22-10/31", startDate: "2027-10-22", defaultCapacity: 12, isTibet: true },
+  { code: "XSD1", series: "中國自駕系列", tourName: "XSD｜帕米爾高原・盤龍古道 重機/四驅車自駕", dateRange: "2027/04/02-04/11", startDate: "2027-04-02", defaultCapacity: 12, isTibet: false },
+  { code: "XSD2", series: "中國自駕系列", tourName: "XSD｜帕米爾高原・盤龍古道 重機/四驅車自駕", dateRange: "2027/10/22-10/31", startDate: "2027-10-22", defaultCapacity: 12, isTibet: false },
 
   // 埃及系列
   { code: "EG1", series: "埃及系列", tourName: "EG｜埃及撒哈拉之旅", dateRange: "2026/12/04-12/15", startDate: "2026-12-04", defaultCapacity: 16, isTibet: false },
