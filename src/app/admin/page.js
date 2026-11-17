@@ -58,26 +58,22 @@ const parseTaiwanDate = (rawStr, orderId = "") => {
   if (rawStr) {
     const str = rawStr.toString().trim();
 
-    // 1. 匹配 YYYY/MM/DD 或 YYYY-MM-DD 或 YYYY年MM月DD日
     const ymdMatch = str.match(/(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/);
     if (ymdMatch) {
       return new Date(parseInt(ymdMatch[1], 10), parseInt(ymdMatch[2], 10) - 1, parseInt(ymdMatch[3], 10));
     }
 
-    // 2. 匹配美式格式 MM/DD/YYYY（Google 試算表預設語系常自動轉成此格式）
     const mdyMatch = str.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
     if (mdyMatch) {
       return new Date(parseInt(mdyMatch[3], 10), parseInt(mdyMatch[1], 10) - 1, parseInt(mdyMatch[2], 10));
     }
 
-    // 3. 匹配民國年 YYY/MM/DD（如 115/11/17）
     const rocMatch = str.match(/^(\d{2,3})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/);
     if (rocMatch) {
       return new Date(parseInt(rocMatch[1], 10) + 1911, parseInt(rocMatch[2], 10) - 1, parseInt(rocMatch[3], 10));
     }
   }
 
-  // 4. 終極備援：直接從訂單編號 (如 SY261117-XXX) 解析出年月日
   if (orderId) {
     const idMatch = orderId.toString().match(/SY(\d{2})(\d{2})(\d{2})/);
     if (idMatch) {
@@ -147,6 +143,7 @@ export default function AdminDashboard() {
   const [editingCapCode, setEditingCapCode] = useState(null);
   const [tempCapValue, setTempCapValue] = useState("");
   const [expandedScheduleCode, setExpandedScheduleCode] = useState(null);
+  const [printTimestamp, setPrintTimestamp] = useState("");
 
   // 載入本地暫存的各團總名額設定
   useEffect(() => {
@@ -169,7 +166,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 取得所有報名資料（並嘗試同步 Schedules 名額分頁）
+  // 取得所有報名資料
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
@@ -177,7 +174,6 @@ export default function AdminDashboard() {
       const data = await response.json();
       setOrders(Array.isArray(data) ? data.reverse() : []);
 
-      // 嘗試讀取雲端 Schedules 分頁名額設定（若尚未建立該分頁則自動忽略）
       try {
         const capRes = await fetch('https://sheetdb.io/api/v1/6xxfvdvjl1t6l?sheet=Schedules');
         if (capRes.ok) {
@@ -192,9 +188,7 @@ export default function AdminDashboard() {
             setCustomCapacities(prev => ({ ...prev, ...cloudMap }));
           }
         }
-      } catch (capErr) {
-        // 雲端尚無 Schedules 分頁時靜默略過
-      }
+      } catch (capErr) {}
     } catch (error) {
       console.error("載入失敗:", error);
     } finally {
@@ -202,7 +196,16 @@ export default function AdminDashboard() {
     }
   };
 
-  // 儲存某團總名額（同步本地與雲端 Schedules 分頁）
+  // 匯出 / 列印 A4 戰情 PDF 報表
+  const handleExportPdfReport = () => {
+    setEditingCapCode(null);
+    setPrintTimestamp(new Date().toLocaleString('zh-TW', { hour12: false }));
+    setTimeout(() => {
+      window.print();
+    }, 150);
+  };
+
+  // 儲存某團總名額
   const handleSaveCapacity = async (code) => {
     const num = parseInt(tempCapValue, 10);
     if (isNaN(num) || num < 1) {
@@ -232,9 +235,7 @@ export default function AdminDashboard() {
           body: JSON.stringify({ data: [{ "團號": code, "總名額": num }] })
         });
       }
-    } catch (e) {
-      // 若尚未建立 Schedules 分頁，本地已生效
-    }
+    } catch (e) {}
   };
 
   // 動態產生行程篩選清單
@@ -262,7 +263,7 @@ export default function AdminDashboard() {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const sevenDaysAgo = new Date(todayStart);
-    sevenDaysAgo.setDate(todayStart.getDate() - 6); // 含今天共 7 天
+    sevenDaysAgo.setDate(todayStart.getDate() - 6);
 
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
@@ -275,7 +276,6 @@ export default function AdminDashboard() {
     let monthlyTotal = 0;
     let monthlyConfirmed = 0;
 
-    // 依時間週期分組（每月 / 每週）
     const periodMap = {};
 
     activeOrders.forEach(o => {
@@ -329,7 +329,6 @@ export default function AdminDashboard() {
       .filter(p => p.total > 0)
       .sort((a, b) => b.key.localeCompare(a.key));
 
-    // 建立各團梯次收客與倒數清單（合併主檔與試算表中出現的梯次）
     const scheduleMap = {};
     MASTER_SCHEDULES.forEach(sch => {
       scheduleMap[sch.code] = {
@@ -364,7 +363,6 @@ export default function AdminDashboard() {
       }
     });
 
-    // 計算每團距離出發日天數、西藏三階段警戒與剩餘名額
     let urgentTibetCount = 0;
 
     const scheduleRows = Object.values(scheduleMap).map(sch => {
@@ -762,11 +760,33 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f7f9] p-4 sm:p-6 font-sans">
-      <div className="max-w-[1440px] mx-auto relative">
+    <div className="min-h-screen bg-[#f5f7f9] p-4 sm:p-6 font-sans print:bg-white print:p-0">
+      {/* A4 橫式 PDF 專用列印樣式 */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 landscape;
+            margin: 10mm 12mm;
+          }
+          body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            background: #ffffff !important;
+          }
+          thead {
+            display: table-header-group;
+          }
+          tr {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+        }
+      `}</style>
 
-        {/* 頂部導航列 */}
-        <div className="flex justify-between items-center mb-6 border-b border-gray-300 pb-2">
+      <div className="max-w-[1440px] mx-auto relative print:max-w-none">
+
+        {/* 頂部導航列（列印 PDF 時自動隱藏） */}
+        <div className="flex justify-between items-center mb-6 border-b border-gray-300 pb-2 print:hidden">
           <div className="flex gap-2">
             <Link href="/query" className="bg-white text-gray-600 hover:text-gray-900 px-6 py-2 rounded-t-lg font-bold border border-b-0 border-gray-300">
               隊員報名查詢
@@ -778,8 +798,8 @@ export default function AdminDashboard() {
           </Link>
         </div>
 
-        {/* 報名名單總覽標頭與三大工作頁籤 */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 mb-5">
+        {/* 報名名單總覽標頭與三大工作頁籤（列印 PDF 時自動隱藏） */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 mb-5 print:hidden">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-gray-100">
             <div>
               <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
@@ -791,7 +811,7 @@ export default function AdminDashboard() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3 mt-4 sm:mt-0">
+            <div className="flex flex-wrap items-center gap-3 mt-4 sm:mt-0">
               {activeTab !== "board" && (
                 <>
                   <label className="text-sm text-gray-600">行程篩選：</label>
@@ -805,6 +825,14 @@ export default function AdminDashboard() {
                     ))}
                   </select>
                 </>
+              )}
+              {activeTab === "board" && (
+                <button
+                  onClick={handleExportPdfReport}
+                  className="bg-[#8A1C14] hover:bg-[#9c221a] text-white px-4 py-1.5 rounded text-sm font-bold flex items-center gap-1.5 shadow-sm transition-colors"
+                >
+                  <span>🖨️ 匯出 / 列印 A4 戰情 PDF 報表</span>
+                </button>
               )}
               <button onClick={fetchOrders} className="bg-white border border-gray-300 text-gray-700 px-4 py-1.5 rounded text-sm hover:bg-gray-50 flex items-center gap-1 shadow-sm">
                 <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
@@ -1120,64 +1148,78 @@ export default function AdminDashboard() {
         )}
 
         {/* ========================================================= */}
-        {/* 頁籤 3：【業務收客電子看板（內部戰情專用）】                  */}
+        {/* 頁籤 3：【業務收客電子看板（含 A4 PDF 正式報表排版）】         */}
         {/* ========================================================= */}
         {activeTab === "board" && (
-          <div className="space-y-6">
+          <div className="space-y-6 print:space-y-4">
+
+            {/* 0. 【僅在匯出 PDF / 列印時顯示】公司正式報表表頭 */}
+            <div className="hidden print:block border-b-2 border-[#8A1C14] pb-3 mb-4">
+              <div className="flex justify-between items-end">
+                <div>
+                  <div className="text-xs font-bold tracking-widest text-[#8A1C14]">SUNNY HOUSE TOURS 陽光小屋旅遊｜內部業務團控專用</div>
+                  <h1 className="text-2xl font-black text-gray-900 mt-0.5">業務收客進度與西藏證件控管戰情報表</h1>
+                </div>
+                <div className="text-right text-xs text-gray-600 space-y-0.5">
+                  <div>報表產出時間：<span className="font-mono font-bold text-gray-900">{printTimestamp || new Date().toLocaleString('zh-TW', { hour12: false })}</span></div>
+                  <div>篩選範圍：<span className="font-bold text-gray-900">{boardSeriesFilter}</span> ｜ 趨勢週期：<span className="font-bold text-gray-900">{reportGranularity === "monthly" ? "按月份統計" : "按週次統計"}</span></div>
+                </div>
+              </div>
+            </div>
 
             {/* 1. 頂部關鍵收客 KPI 卡片 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-4 gap-4 print:gap-3">
+              <div className="bg-white rounded-xl p-5 print:p-3.5 border border-gray-200 print:border-gray-400 shadow-sm print:shadow-none">
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">本週新增收客（近 7 日）</div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-gray-900">{dashboardStats.weeklyTotal}</span>
+                <div className="mt-2 print:mt-1 flex items-baseline gap-2">
+                  <span className="text-3xl print:text-2xl font-black text-gray-900">{dashboardStats.weeklyTotal}</span>
                   <span className="text-sm text-gray-500">人進單</span>
                 </div>
-                <div className="mt-2 text-xs text-emerald-700 font-semibold">
+                <div className="mt-2 print:mt-1 text-xs text-emerald-700 font-semibold">
                   ✓ 其中 {dashboardStats.weeklyConfirmed} 人已確認訂金
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+              <div className="bg-white rounded-xl p-5 print:p-3.5 border border-gray-200 print:border-gray-400 shadow-sm print:shadow-none">
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">本月新增收客（當月）</div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-[#8A1C14]">{dashboardStats.monthlyTotal}</span>
+                <div className="mt-2 print:mt-1 flex items-baseline gap-2">
+                  <span className="text-3xl print:text-2xl font-black text-[#8A1C14]">{dashboardStats.monthlyTotal}</span>
                   <span className="text-sm text-gray-500">人進單</span>
                 </div>
-                <div className="mt-2 text-xs text-emerald-700 font-semibold">
+                <div className="mt-2 print:mt-1 text-xs text-emerald-700 font-semibold">
                   ✓ 其中 {dashboardStats.monthlyConfirmed} 人已確認訂金
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+              <div className="bg-white rounded-xl p-5 print:p-3.5 border border-gray-200 print:border-gray-400 shadow-sm print:shadow-none">
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">全檔期有效總收客</div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-slate-800">{dashboardStats.totalConfirmedAll}</span>
+                <div className="mt-2 print:mt-1 flex items-baseline gap-2">
+                  <span className="text-3xl print:text-2xl font-black text-slate-800">{dashboardStats.totalConfirmedAll}</span>
                   <span className="text-sm text-gray-500">人已付訂</span>
                 </div>
-                <div className="mt-2 text-xs text-amber-700 font-semibold">
+                <div className="mt-2 print:mt-1 text-xs text-amber-700 font-semibold">
                   ＋ {dashboardStats.totalActive - dashboardStats.totalConfirmedAll} 人保留中（待付訂）
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-amber-50 to-red-50 rounded-xl p-5 border border-amber-200 shadow-sm">
+              <div className="bg-gradient-to-br from-amber-50 to-red-50 rounded-xl p-5 print:p-3.5 border border-amber-200 print:border-amber-400 shadow-sm print:shadow-none">
                 <div className="text-xs font-bold text-amber-900 uppercase tracking-wider">🏔️ 西藏證件期限警戒梯次</div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-red-700">{dashboardStats.urgentTibetCount}</span>
+                <div className="mt-2 print:mt-1 flex items-baseline gap-2">
+                  <span className="text-3xl print:text-2xl font-black text-red-700">{dashboardStats.urgentTibetCount}</span>
                   <span className="text-sm text-red-800 font-bold">個梯次進入 ≤30天</span>
                 </div>
-                <div className="mt-2 text-xs text-gray-700">
+                <div className="mt-2 print:mt-1 text-xs text-gray-700">
                   D-30 最終收客 ｜ D-25 停收 ｜ D-20 行政完成
                 </div>
               </div>
             </div>
 
             {/* 2. 西藏入藏證件作業規範提醒橫幅 */}
-            <div className="bg-slate-800 text-white rounded-xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="bg-slate-800 text-white rounded-xl p-4 sm:p-5 print:p-3 shadow-sm print:shadow-none flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="flex items-start gap-3">
-                <span className="text-2xl">🏔️</span>
-                <div className="text-xs sm:text-sm space-y-1">
-                  <div className="font-bold text-amber-400 text-base">西藏入藏證件與行政控管基準線（系統自動倒數）</div>
+                <span className="text-2xl print:text-lg">🏔️</span>
+                <div className="text-xs sm:text-sm print:text-xs space-y-1">
+                  <div className="font-bold text-amber-400 text-base print:text-sm">西藏入藏證件與行政控管基準線（系統自動倒數）</div>
                   <p className="text-slate-300">
                     因入藏函辦理需提前送審，系統自動依各團出發日計算三大節點：
                     <span className="text-amber-300 font-bold mx-1">① 出發前 30 天（最終收客期）</span>➔
@@ -1186,7 +1228,7 @@ export default function AdminDashboard() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-xs shrink-0">
+              <div className="flex items-center gap-2 text-xs shrink-0 print:hidden">
                 <span className="text-slate-400">系列篩選：</span>
                 <select
                   value={boardSeriesFilter}
@@ -1203,13 +1245,13 @@ export default function AdminDashboard() {
             </div>
 
             {/* 3. 各團梯次收客進度與剩餘可販售名額看板 */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-5 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="bg-white rounded-xl shadow-sm print:shadow-none border border-gray-200 print:border-gray-400 overflow-hidden">
+              <div className="p-5 print:p-3 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">📋 各團梯次收客統計與剩餘可販售名額</h2>
-                  <p className="text-xs text-gray-500 mt-0.5">點擊「總名額」數字可直接修改每團上限；點擊梯次列可展開該團名單</p>
+                  <h2 className="text-lg print:text-base font-bold text-gray-900">📋 各團梯次收客統計與剩餘可販售名額</h2>
+                  <p className="text-xs text-gray-500 mt-0.5 print:hidden">點擊「總名額」數字可直接修改每團上限；點擊梯次列可展開該團名單</p>
                 </div>
-                <div className="flex gap-2 text-xs">
+                <div className="flex gap-2 text-xs print:hidden">
                   <button
                     onClick={() => setBoardStatusFilter("upcoming")}
                     className={`px-3 py-1.5 rounded font-bold border ${boardStatusFilter === "upcoming" ? "bg-slate-800 text-white border-slate-800" : "bg-white text-gray-600 border-gray-300"}`}
@@ -1232,16 +1274,16 @@ export default function AdminDashboard() {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-sm">
+                <table className="w-full text-left border-collapse text-sm print:text-xs">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 text-xs">
-                      <th className="p-4 font-bold">團號 / 出發日期</th>
-                      <th className="p-4 font-bold">行程名稱</th>
-                      <th className="p-4 font-bold">收客與行政期限狀態（D-30 / D-25 / D-20）</th>
-                      <th className="p-4 font-bold text-center">總名額</th>
-                      <th className="p-4 font-bold text-center">已付訂 / 待付訂</th>
-                      <th className="p-4 font-bold text-center">剩餘可販售</th>
-                      <th className="p-4 font-bold w-48">成團進度條</th>
+                    <tr className="bg-gray-50 border-b border-gray-200 print:border-gray-400 text-gray-600 text-xs">
+                      <th className="p-4 print:p-2.5 font-bold">團號 / 出發日期</th>
+                      <th className="p-4 print:p-2.5 font-bold">行程名稱</th>
+                      <th className="p-4 print:p-2.5 font-bold">收客與行政期限狀態（D-30 / D-25 / D-20）</th>
+                      <th className="p-4 print:p-2.5 font-bold text-center">總名額</th>
+                      <th className="p-4 print:p-2.5 font-bold text-center">已付訂 / 待付訂</th>
+                      <th className="p-4 print:p-2.5 font-bold text-center">剩餘可販售</th>
+                      <th className="p-4 print:p-2.5 font-bold w-48 print:w-36">成團進度條</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1254,16 +1296,16 @@ export default function AdminDashboard() {
                         <React.Fragment key={sch.code}>
                           <tr
                             onClick={() => setExpandedScheduleCode(isExpanded ? null : sch.code)}
-                            className={`border-b border-gray-100 cursor-pointer transition-colors ${
+                            className={`border-b border-gray-100 print:border-gray-300 cursor-pointer transition-colors ${
                               sch.isCutoffStopped && sch.daysUntil >= 0
                                 ? "bg-orange-50/40 hover:bg-orange-50"
                                 : "hover:bg-slate-50"
                             }`}
                           >
                             {/* 團號與出發日 */}
-                            <td className="p-4 align-top">
+                            <td className="p-4 print:p-2.5 align-top">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono font-black text-base text-[#8A1C14]">{sch.code}</span>
+                                <span className="font-mono font-black text-base print:text-sm text-[#8A1C14]">{sch.code}</span>
                                 {sch.daysUntil !== null && sch.daysUntil >= 0 && (
                                   <span className="text-[11px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
                                     剩 {sch.daysUntil} 天
@@ -1274,18 +1316,18 @@ export default function AdminDashboard() {
                             </td>
 
                             {/* 行程名稱 */}
-                            <td className="p-4 align-top">
+                            <td className="p-4 print:p-2.5 align-top">
                               <div className="font-bold text-gray-800">{sch.tourName}</div>
                               <div className="text-xs text-gray-400 mt-0.5">{sch.series}</div>
                             </td>
 
                             {/* 收客與行政期限狀態 */}
-                            <td className="p-4 align-top">
-                              <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded border ${sch.stageBadge.color}`}>
+                            <td className="p-4 print:p-2.5 align-top">
+                              <span className={`inline-block text-xs print:text-[11px] font-bold px-2.5 py-1 print:px-2 print:py-0.5 rounded border ${sch.stageBadge.color}`}>
                                 {sch.stageBadge.text}
                               </span>
                               {sch.stageBadge.subText && (
-                                <div className="text-xs font-medium text-gray-700 mt-1">{sch.stageBadge.subText}</div>
+                                <div className="text-xs print:text-[11px] font-medium text-gray-700 mt-1">{sch.stageBadge.subText}</div>
                               )}
                               {sch.isTibet && sch.startDate && (
                                 <div className="text-[11px] text-gray-500 mt-1 font-mono">
@@ -1294,10 +1336,10 @@ export default function AdminDashboard() {
                               )}
                             </td>
 
-                            {/* 總名額（可點擊修改） */}
-                            <td className="p-4 align-top text-center" onClick={(e) => e.stopPropagation()}>
+                            {/* 總名額（列印時隱藏編輯筆圖示） */}
+                            <td className="p-4 print:p-2.5 align-top text-center" onClick={(e) => e.stopPropagation()}>
                               {editingCapCode === sch.code ? (
-                                <div className="flex items-center justify-center gap-1">
+                                <div className="flex items-center justify-center gap-1 print:hidden">
                                   <input
                                     type="number"
                                     min="1"
@@ -1318,16 +1360,16 @@ export default function AdminDashboard() {
                                     setEditingCapCode(sch.code);
                                     setTempCapValue(String(sch.capacity));
                                   }}
-                                  className="font-mono font-bold text-gray-800 hover:text-blue-600 hover:underline px-2 py-1 rounded bg-gray-100"
+                                  className="font-mono font-bold text-gray-800 hover:text-blue-600 hover:underline px-2 py-1 rounded bg-gray-100 print:bg-transparent print:p-0"
                                   title="點擊修改本團總名額"
                                 >
-                                  {sch.capacity} 人 ✎
+                                  {sch.capacity} 人 <span className="print:hidden">✎</span>
                                 </button>
                               )}
                             </td>
 
                             {/* 已付訂 / 待付訂 */}
-                            <td className="p-4 align-top text-center">
+                            <td className="p-4 print:p-2.5 align-top text-center">
                               <div className="font-mono text-sm">
                                 <span className="font-black text-emerald-700">{sch.confirmedCount}</span>
                                 <span className="text-gray-400 mx-1">/</span>
@@ -1337,10 +1379,10 @@ export default function AdminDashboard() {
                             </td>
 
                             {/* 剩餘可販售 */}
-                            <td className="p-4 align-top text-center">
+                            <td className="p-4 print:p-2.5 align-top text-center">
                               {sch.isCutoffStopped ? (
                                 <div>
-                                  <span className="inline-block bg-gray-200 text-gray-700 text-xs font-bold px-2.5 py-1 rounded">
+                                  <span className="inline-block bg-gray-200 text-gray-700 text-xs print:text-[11px] font-bold px-2.5 py-1 rounded">
                                     已停售（剩 {sch.remainingConfirmed} 空位）
                                   </span>
                                 </div>
@@ -1350,7 +1392,7 @@ export default function AdminDashboard() {
                                 </span>
                               ) : (
                                 <div>
-                                  <span className={`font-mono text-lg font-black ${sch.remainingConfirmed <= 3 ? "text-red-600" : "text-blue-700"}`}>
+                                  <span className={`font-mono text-lg print:text-sm font-black ${sch.remainingConfirmed <= 3 ? "text-red-600" : "text-blue-700"}`}>
                                     剩 {sch.remainingConfirmed} 位
                                   </span>
                                   {sch.pendingCount > 0 && (
@@ -1363,8 +1405,8 @@ export default function AdminDashboard() {
                             </td>
 
                             {/* 視覺化進度條 */}
-                            <td className="p-4 align-middle">
-                              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden flex">
+                            <td className="p-4 print:p-2.5 align-middle">
+                              <div className="w-full bg-gray-200 rounded-full h-3 print:h-2.5 overflow-hidden flex border border-gray-300">
                                 <div
                                   style={{ width: `${confirmedPct}%` }}
                                   className="bg-emerald-600 h-full transition-all"
@@ -1378,7 +1420,7 @@ export default function AdminDashboard() {
                               </div>
                               <div className="flex justify-between text-[11px] text-gray-500 mt-1">
                                 <span>已佔 {sch.totalOccupied}/{sch.capacity}</span>
-                                <span>{isExpanded ? "▲ 收合名單" : "▼ 展開名單"}</span>
+                                <span className="print:hidden">{isExpanded ? "▲ 收合名單" : "▼ 展開名單"}</span>
                               </div>
                             </td>
                           </tr>
@@ -1386,8 +1428,8 @@ export default function AdminDashboard() {
                           {/* 展開顯示該梯次報名團員明細 */}
                           {isExpanded && (
                             <tr className="bg-slate-50 border-b border-gray-200">
-                              <td colSpan="7" className="p-4 sm:p-5">
-                                <div className="bg-white rounded-lg border border-slate-200 p-4">
+                              <td colSpan="7" className="p-4 sm:p-5 print:p-3">
+                                <div className="bg-white rounded-lg border border-slate-200 p-4 print:p-3">
                                   <div className="font-bold text-sm text-slate-800 mb-3 flex justify-between items-center">
                                     <span>👥 {sch.code} 團員佔位清單（共 {sch.totalOccupied} 位有效報名）</span>
                                     <span className="text-xs font-normal text-gray-500">綠標為已確認訂金、黃標為尚未確認訂金</span>
@@ -1395,7 +1437,7 @@ export default function AdminDashboard() {
                                   {sch.totalOccupied === 0 ? (
                                     <p className="text-xs text-gray-400 py-2">本梯次目前尚無有效報名紀錄。</p>
                                   ) : (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 text-xs">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 print:grid-cols-4 gap-2.5 text-xs">
                                       {sch.confirmedList.map((m, i) => (
                                         <div key={`c-${i}`} className="p-2.5 rounded border border-emerald-200 bg-emerald-50/60 flex justify-between items-center">
                                           <div>
@@ -1434,13 +1476,15 @@ export default function AdminDashboard() {
             </div>
 
             {/* 4. 每週 / 每月收客業績統計報表 */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-5 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="bg-white rounded-xl shadow-sm print:shadow-none border border-gray-200 print:border-gray-400 overflow-hidden">
+              <div className="p-5 print:p-3 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">📈 每週 / 每月收客趨勢報表</h2>
+                  <h2 className="text-lg print:text-base font-bold text-gray-900">
+                    📈 {reportGranularity === "monthly" ? "每月收客趨勢統計報表" : "每週收客趨勢統計報表"}
+                  </h2>
                   <p className="text-xs text-gray-500 mt-0.5">統計各時間區間的實際收客進單量（已自動排除取消訂單）</p>
                 </div>
-                <div className="flex bg-gray-100 p-1 rounded-lg text-xs font-bold">
+                <div className="flex bg-gray-100 p-1 rounded-lg text-xs font-bold print:hidden">
                   <button
                     onClick={() => setReportGranularity("monthly")}
                     className={`px-4 py-1.5 rounded-md transition-all ${reportGranularity === "monthly" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600"}`}
@@ -1457,27 +1501,27 @@ export default function AdminDashboard() {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-sm">
+                <table className="w-full text-left border-collapse text-sm print:text-xs">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 text-xs">
-                      <th className="p-4 font-bold w-56">{reportGranularity === "monthly" ? "統計月份" : "統計週期（週一～週日）"}</th>
-                      <th className="p-4 font-bold text-center w-32">總進單人數</th>
-                      <th className="p-4 font-bold text-center w-32">已確認付訂</th>
-                      <th className="p-4 font-bold text-center w-32">待付訂保留</th>
-                      <th className="p-4 font-bold">各系列收客分布</th>
+                    <tr className="bg-gray-50 border-b border-gray-200 print:border-gray-400 text-gray-600 text-xs">
+                      <th className="p-4 print:p-2.5 font-bold w-56">{reportGranularity === "monthly" ? "統計月份" : "統計週期（週一～週日）"}</th>
+                      <th className="p-4 print:p-2.5 font-bold text-center w-32">總進單人數</th>
+                      <th className="p-4 print:p-2.5 font-bold text-center w-32">已確認付訂</th>
+                      <th className="p-4 print:p-2.5 font-bold text-center w-32">待付訂保留</th>
+                      <th className="p-4 print:p-2.5 font-bold">各系列收客分布</th>
                     </tr>
                   </thead>
                   <tbody>
                     {dashboardStats.periodReports.map((row) => (
-                      <tr key={row.key} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="p-4 font-mono font-bold text-gray-800">{row.label}</td>
-                        <td className="p-4 text-center font-mono text-base font-black text-gray-900">{row.total} 人</td>
-                        <td className="p-4 text-center font-mono font-bold text-emerald-700">{row.confirmed} 人</td>
-                        <td className="p-4 text-center font-mono font-bold text-amber-600">{row.pending} 人</td>
-                        <td className="p-4">
+                      <tr key={row.key} className="border-b border-gray-100 print:border-gray-300 hover:bg-gray-50">
+                        <td className="p-4 print:p-2.5 font-mono font-bold text-gray-800">{row.label}</td>
+                        <td className="p-4 print:p-2.5 text-center font-mono text-base print:text-sm font-black text-gray-900">{row.total} 人</td>
+                        <td className="p-4 print:p-2.5 text-center font-mono font-bold text-emerald-700">{row.confirmed} 人</td>
+                        <td className="p-4 print:p-2.5 text-center font-mono font-bold text-amber-600">{row.pending} 人</td>
+                        <td className="p-4 print:p-2.5">
                           <div className="flex flex-wrap gap-1.5">
                             {Object.entries(row.seriesBreakdown).map(([sName, count]) => (
-                              <span key={sName} className="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full font-medium">
+                              <span key={sName} className="text-xs print:text-[11px] bg-slate-100 text-slate-700 px-2.5 py-1 print:py-0.5 rounded-full font-medium border border-slate-200">
                                 {sName}：<strong className="text-slate-900">{count}</strong> 人
                               </span>
                             ))}
@@ -1493,12 +1537,19 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+            {/* 5. 【僅在匯出 PDF / 列印時顯示】底部行政簽核欄 */}
+            <div className="hidden print:grid grid-cols-3 gap-8 pt-6 mt-4 border-t border-gray-400 text-xs text-gray-800">
+              <div>製表業務專員：＿＿＿＿＿＿＿＿＿＿＿＿</div>
+              <div>業務主管覆核：＿＿＿＿＿＿＿＿＿＿＿＿</div>
+              <div>西藏證件／行政窗口：＿＿＿＿＿＿＿＿＿＿</div>
+            </div>
+
           </div>
         )}
 
         {/* Modal 1：【訂金】輸入刷卡連結與效期 */}
         {showCardModal && selectedOrderForCard && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm print:hidden">
             <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-gray-200">
               <div className="bg-blue-600 px-6 py-4 flex justify-between items-center text-white">
                 <h3 className="font-bold text-lg">💳 綁定訂金專屬刷卡單並寄送通知</h3>
@@ -1546,7 +1597,7 @@ export default function AdminDashboard() {
 
         {/* Modal 2：【尾款】費用明細帳單產生器 */}
         {showBalanceModal && selectedOrderForBalance && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm print:hidden">
             <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden border border-gray-200 max-h-[90vh] flex flex-col">
               <div className="bg-[#2c3e50] px-6 py-4 flex justify-between items-center text-white">
                 <h3 className="font-bold text-lg">🧾 開立尾款費用明細與請款通知</h3>
