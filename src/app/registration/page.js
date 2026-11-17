@@ -200,7 +200,7 @@ export default function RegistrationForm() {
     const newOrderNumber = `SY${dateStr}-${randomStr}`;
     setOrderNumber(newOrderNumber);
 
-    // 3. 準備寫入資料 (第一欄寫入剛剛算出的「編號」)
+    // 3. 準備寫入資料（包含訂金與尾款初始預設欄位）
     const payload = {
       data: [{
         "編號": nextSerial,
@@ -231,6 +231,13 @@ export default function RegistrationForm() {
         "刷卡連結": "",
         "刷卡有效期限": "",
         "應付訂金": 15000,
+        "尾款明細": "",
+        "應付尾款": "",
+        "尾款支付方式": formData.paymentMethod,
+        "尾款後五碼": "",
+        "尾款刷卡連結": "",
+        "尾款有效期限": "",
+        "尾款狀態": "未請款",
         "是否開立統編": formData.needTaxId ? "是" : "否",
         "公司抬頭": formData.companyTitle || "",
         "統一編號": formData.taxId || "",
@@ -262,7 +269,7 @@ export default function RegistrationForm() {
                 schedule_date: formData.schedule,
                 query_url: window.location.origin + "/query"
               },
-              { publicKey: EMAILJS_PUBLIC_KEY }
+              EMAILJS_PUBLIC_KEY
             );
           } catch (emailError) {
             console.error("匯款通知信發送失敗:", emailError);
