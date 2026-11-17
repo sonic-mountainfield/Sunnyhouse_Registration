@@ -9,22 +9,22 @@ const EMAILJS_SERVICE_ID = "service_wu8dua2";
 const EMAILJS_PUBLIC_KEY = "gAivgFufM8L44AAow";
 const TEMPLATE_A_REMITTANCE = "template_76v5j6c";
 
-// 完整旅遊行程與檔期資料庫
+// 完整旅遊行程與檔期資料庫（統一標註年份）
 const tourData = [
   {
     series: "西藏系列",
     tours: [
       { tourId: "TE", name: "TE｜林芝桃花・頂級西藏青藏鐵路12日", hasDayOptions: false, schedules: [
-        {code: "TE1", date: "03/19-03/30"}, {code: "TE2", date: "04/02-04/13"}, 
-        {code: "TE3", date: "10/22-11/02"}, {code: "TE4", date: "11/05-11/16"}
+        {code: "TE1", date: "2027/03/19-03/30"}, {code: "TE2", date: "2027/04/02-04/13"}, 
+        {code: "TE3", date: "2027/10/22-11/02"}, {code: "TE4", date: "2027/11/05-11/16"}
       ]},
       { tourId: "TB", name: "TB｜西藏聖母峰大環線・神山聖湖", hasDayOptions: true, dayOptions: ["10天", "12天"], schedules: [
-        {code: "TB1", date: "04/02-04/13"}, {code: "TB2", date: "04/23-05/04"}, {code: "TB3", date: "06/04-06/15"}, 
-        {code: "TB4", date: "07/09-07/20"}, {code: "TB5", date: "08/13-08/24"}, {code: "TB6", date: "09/10-09/21"}, 
-        {code: "TB7", date: "09/24-10/05"}, {code: "TB8", date: "10/08-10/19"}, {code: "TB9", date: "10/22-11/02"}
+        {code: "TB1", date: "2027/04/02-04/13"}, {code: "TB2", date: "2027/04/23-05/04"}, {code: "TB3", date: "2027/06/04-06/15"}, 
+        {code: "TB4", date: "2027/07/09-07/20"}, {code: "TB5", date: "2027/08/13-08/24"}, {code: "TB6", date: "2027/09/10-09/21"}, 
+        {code: "TB7", date: "2027/09/24-10/05"}, {code: "TB8", date: "2027/10/08-10/19"}, {code: "TB9", date: "2027/10/22-11/02"}
       ]},
       { tourId: "TK", name: "TK｜阿里岡仁波齊轉山之旅", hasDayOptions: false, schedules: [
-        {code: "TK1", date: "06/04-06/15"}, {code: "TK2", date: "09/10-09/21"}
+        {code: "TK1", date: "2027/06/04-06/15"}, {code: "TK2", date: "2027/09/10-09/21"}
       ]}
     ]
   },
@@ -32,7 +32,7 @@ const tourData = [
     series: "新疆系列",
     tours: [
       { tourId: "XS", name: "XS｜南疆・帕米爾高原・盤龍古道", hasDayOptions: false, schedules: [
-        {code: "XS1", date: "04/02-04/11"}, {code: "XS2", date: "10/22-10/31"}
+        {code: "XS1", date: "2027/04/02-04/11"}, {code: "XS2", date: "2027/10/22-10/31"}
       ]}
     ]
   },
@@ -40,13 +40,13 @@ const tourData = [
     series: "中國自駕系列",
     tours: [
       { tourId: "TC318", name: "TC318｜此生必駕318・重機/四驅車自駕", hasDayOptions: false, schedules: [
-        {code: "TC318-1", date: "04/14-04/26"}, {code: "TC318-2", date: "10/13-10/25"}
+        {code: "TC318-1", date: "2027/04/14-04/26"}, {code: "TC318-2", date: "2027/10/13-10/25"}
       ]},
       { tourId: "TC", name: "TC｜聖母峰・重機/四驅車自駕", hasDayOptions: false, schedules: [
-        {code: "TC1", date: "04/23-05/02"}, {code: "TC2", date: "10/22-10/31"}
+        {code: "TC1", date: "2027/04/23-05/02"}, {code: "TC2", date: "2027/10/22-10/31"}
       ]},
       { tourId: "XSD", name: "XSD｜帕米爾高原・盤龍古道 重機/四驅車自駕", hasDayOptions: false, schedules: [
-        {code: "XSD1", date: "04/02-04/11"}, {code: "XSD2", date: "10/22-10/31"}
+        {code: "XSD1", date: "2027/04/02-04/11"}, {code: "XSD2", date: "2027/10/22-10/31"}
       ]}
     ]
   },
